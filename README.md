@@ -11,7 +11,7 @@ The game rules can be found at , but some of them are highlighted below:
 ## Current simplifications
 This will be a multi-phase project. Thus, some features will be implemented only in advanced versions. 
 Currently, the following simplifications are being used:
-- The `0` player is alwayes the first to play
+- The `0` player is always the first to play
 - There are no joker tiles
 - There is only one round
 
