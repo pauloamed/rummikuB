@@ -2,7 +2,7 @@
 Rummikub game implemented in B language.
 
 ## Rules
-The game rules can be found at , but some of them are highlighted below:
+The game rules can be found at https://www.boardgamehalv.com/how-to-play-rummikub/ , but some of them are highlighted below:
 - Each player’s initial move has to be at least 30 points
 - A run is 3 or more in a row of the same color
 - A group is 3 or more of the same number that are all different colors 
