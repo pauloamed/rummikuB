@@ -1,7 +1,7 @@
 MACHINE Rummikub
 
 SETS
-  NAME;
+  NAME = {NAME1, NAME2, NAME3, NAME4};
   GAME_STATE = {NOT_RUNNING, ADDING_PLAYERS, DRAWING_INITIAL_TILES, START_TURN, MELDING, FINISH_TURN, FINISHED}
 
 CONSTANTS
@@ -78,8 +78,6 @@ INVARIANT
   groups <: POW(TILES) &
   !xx.(xx : groups => (card(xx) >= MIN_TILES_PER_GAME) & (card(COLOR[xx]) = card(xx)) & (card(NUMBER[xx]) = 1)) &
 
-	// Finish turn tem que apagar o back_up? Diria que sim, mas n afirmo enteder por completo o backu_up
-  (state /= MELDING => ((runs = backup_runs) & (groups = backup_groups))) &
   in_hand <: TILES &
 
   /********************************** BACKUPS ************************************************/
@@ -140,9 +138,12 @@ OPERATIONS
   next_turn(xx) = 
     PRE state = FINISH_TURN & xx : ran(players) & players~(xx) = player_turn
     THEN
+      // first checks if there is a winner
+      IF players_racks(players~(xx)) = {} THEN
+        state := FINISHED
       // select: if theres a tile in the sack
       // if can make a move
-      IF player_turn = num_players THEN
+      ELSIF player_turn = num_players THEN
         player_turn := 1 || state := START_TURN
       ELSE
         player_turn := player_turn + 1 || 
@@ -165,11 +166,11 @@ OPERATIONS
       END
     END;
  
-  start_melding(xx, ss) = 
-    PRE state = START_TURN & xx : ran(players) & players~(xx) = player_turn & ss <: players_racks(players~(xx)) & card(ss) > 0
+  start_melding(xx) = 
+    PRE state = START_TURN & xx : ran(players) & players~(xx) = player_turn
     THEN
-      in_hand := ss || backup_groups := groups || backup_runs := runs || 
-      backup_rack := players_racks(players~(xx)) || players_racks(players~(xx)) := players_racks(players~(xx)) - ss ||
+      in_hand := players_racks(players~(xx)) || players_racks(players~(xx)) := {} ||
+      backup_groups := groups || backup_runs := runs || backup_rack := players_racks(players~(xx)) ||
       state := MELDING
     END;
 
@@ -199,10 +200,10 @@ OPERATIONS
       runs := runs \/ {rr} || in_hand := in_hand - rr
     END;
 
-  finish_turn(xx) = 
-    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & in_hand = {}
+  finish_melding(xx) = 
+    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & in_hand <<: backup_rack
     THEN
-      state := FINISH_TURN || backup_runs := {} || backup_groups := {} || backup_rack := {}
+      state := FINISH_TURN || backup_runs := {} || backup_groups := {} || backup_rack := {} || players_racks(players~(xx)) := in_hand || in_hand := {}
     END;
   
   reset_turn(xx) = 
@@ -212,20 +213,16 @@ OPERATIONS
       state := START_TURN 
     END;
 
-  /*
-  yy <-- is_players_turn(xx) = 
-    PRE xx : ran(players) & state = PLAYING
-    THEN
-      IF players~(xx) = player_turn THEN
-        yy := TRUE
-      ELSE
-        yy := FALSE
-      END
-    END;
-  */
 
-// Funções para alívio mental
-  xx <-- draw_initial_tiless =
-    xx := card(players_racks |> { {} })
+  // A primeira linha tem que ser um PRE ao invés de IF, mas fica assim pra visualizar o processo
+  yy <-- winner =
+    IF state = FINISHED THEN 
+      yy := {xx | xx : ran(players) & players_racks(players~(xx)) = {} }
+    ELSE
+      yy := {}
+    END;
+    
+  yy <-- player_score(xx) =
+    yy := SIGMA (zz) . (zz : players_racks(players~(xx)) | NUMBER(zz) + 1)
 
 END
