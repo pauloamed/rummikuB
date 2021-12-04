@@ -17,7 +17,7 @@ PROPERTIES
   // Color from tile X can be retrived using: (i//(TILES_PER_SET*SET_PER_COLOR)) (floor division)
   // Number from tile X can be retrived using: (i%TILES_PER_SET) 
 
-  TILES = 0..104 &
+  TILES = 0..103 &
   NUM_STARTING_TILES = 14 & 
   TILES_PER_SET = 13 & 
   SET_PER_COLOR = 2 & 
@@ -59,8 +59,8 @@ INVARIANT
   UNION ( ss ) . (ss : dom(players_racks) | players_racks(ss)) /\ in_sack = {} &
 
   // Exclusive or: a piece is either in the sack or in (exactly) 1 player rack
-  !xx.(xx : TILES => (xx : in_sack) or (card({yy | yy : ran(players_racks) & xx : yy }) = 1)) &
-  !xx.(xx : TILES => not ((xx : in_sack) & (card({yy | yy : ran(players_racks) & xx : yy }) = 1))) &
+  !xx.(xx : TILES => ((xx : in_sack) or (card({yy | yy : ran(players_racks) & xx : yy }) = 1) or (xx: in_hand) or (#yy.( yy : runs \/ groups & xx : yy) ))) &
+  !xx.(xx : TILES => not ((xx : in_sack) & (card({yy | yy : ran(players_racks) & xx : yy }) = 1) & (xx: in_hand) & (#yy.( yy : runs \/ groups & xx : yy) ))) &
 
   /********************************** RUNS AND GROUPS ************************************************/
 
@@ -69,7 +69,7 @@ INVARIANT
   // Number of unique numbers must be equal to run size
   // Diference from minimal to maximal element must be equal to run size
   runs <: POW(TILES) &
-  !xx.(xx : runs => (card(xx) >= MIN_TILES_PER_GAME) & (card(COLOR[xx]) = 1) & (card(NUMBER[xx]) = card(xx))) &
+  !xx.(xx : runs => ((card(xx) >= MIN_TILES_PER_GAME) & (card(COLOR[xx]) = 1) & (card(NUMBER[xx]) = card(xx)))) &
   !xx.(xx : runs => (max(xx) - min(xx) + 1) = card(xx)) &
 
   // A group is 3 or more of the same number that are all different colors
@@ -78,19 +78,20 @@ INVARIANT
   groups <: POW(TILES) &
   !xx.(xx : groups => (card(xx) >= MIN_TILES_PER_GAME) & (card(COLOR[xx]) = card(xx)) & (card(NUMBER[xx]) = 1)) &
 
-  (state /= MELDING => (runs = backup_runs) & (groups = backup_groups)) &
+	// Finish turn tem que apagar o back_up? Diria que sim, mas n afirmo enteder por completo o backu_up
+  (state /= MELDING => ((runs = backup_runs) & (groups = backup_groups))) &
   in_hand <: TILES &
 
   /********************************** BACKUPS ************************************************/
 
   backup_rack <: TILES &
-  state /= MELDING => backup_groups <: groups &
-  state /= MELDING => backup_runs <: runs
+  (state /= MELDING => backup_groups <: groups) &
+  (state /= MELDING => backup_runs <: runs)
 
 INITIALISATION 
   state := NOT_RUNNING || 
   players := {} || num_players := 0 || player_turn := 1 ||
-  runs := {} || groups := {} || in_sack := {} || players_racks := {} || 
+  runs := {} || groups := {} || in_sack := 0..103 || players_racks := {} || 
   backup_groups := {} || backup_runs := {} || backup_rack := {} || in_hand := {}
 
 OPERATIONS
@@ -158,9 +159,9 @@ OPERATIONS
     END;
  
   start_melding(xx, ss) = 
-    PRE xx : ran(players) & players~(xx) = player_turn & ss <: players_racks(players~(xx)) & state = START_TURN
+    PRE xx : ran(players) & players~(xx) = player_turn & ss <: players_racks(players~(xx)) & card(ss) > 0 & state = START_TURN
     THEN
-      state := MELDING || in_hand := ss || backup_groups := groups || backup_runs := runs || backup_rack := players_racks(players~(xx))
+      state := MELDING || in_hand := ss || backup_groups := groups || backup_runs := runs || backup_rack := players_racks(players~(xx)) || players_racks(players~(xx)) := players_racks(players~(xx)) - ss
     END;
 
   remove_group(xx, gg) = 
@@ -192,7 +193,7 @@ OPERATIONS
   finish_turn(xx) = 
     PRE xx : ran(players) & players~(xx) = player_turn & in_hand = {} & state = MELDING
     THEN
-      state := FINISH_TURN
+      state := FINISH_TURN || backup_runs := {} || backup_groups := {}
     END;
   
   reset_turn(xx) = 
