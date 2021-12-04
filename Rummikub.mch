@@ -2,11 +2,11 @@ MACHINE Rummikub
 
 SETS
   NAME;
-  GAME_STATE = {NOT_RUNNING, ADDING_PLAYERS, DRAWING_INITIAL_TILES, PLAYING, FINISHED}
+  GAME_STATE = {NOT_RUNNING, ADDING_PLAYERS, DRAWING_INITIAL_TILES, START_TURN, MELDING, FINISH_TURN, FINISHED}
 
 CONSTANTS
   VALID_PLAYERS_NUMS, VALID_PLAYERS_IDS,
-  TILES, NUM_STARTING_TILES, TILES_PER_SET, SET_PER_COLOR, TILE_2_COLOR, TILE_2_NUMBER, MIN_TILES_PER_GAME
+  TILES, NUM_STARTING_TILES, TILES_PER_SET, SET_PER_COLOR, COLOR, NUMBER, MIN_TILES_PER_GAME
 
 PROPERTIES        
   VALID_PLAYERS_NUMS = 2..4 & 
@@ -17,19 +17,23 @@ PROPERTIES
   // Color from tile X can be retrived using: (i//(TILES_PER_SET*SET_PER_COLOR)) (floor division)
   // Number from tile X can be retrived using: (i%TILES_PER_SET) 
 
-  TILES = 0..104 & TILES : FIN(0..103) &
+  TILES = 0..104 &
   NUM_STARTING_TILES = 14 & 
   TILES_PER_SET = 13 & 
   SET_PER_COLOR = 2 & 
   MIN_TILES_PER_GAME = 3 &
 
-  TILE_2_COLOR : TILES --> 0..3 & 
-  !xx.(xx : TILES => {xx |-> xx /(TILES_PER_SET*SET_PER_COLOR)} <: TILE_2_COLOR) & 
+  COLOR : TILES -->> 0..3 & 
+  !xx.(xx : TILES => {xx |-> xx /(TILES_PER_SET*SET_PER_COLOR)} <: COLOR) & 
 
-  TILE_2_NUMBER : TILES --> 0..12 & 
-  !xx.(xx : TILES => {xx |-> xx mod TILES_PER_SET} <: TILE_2_NUMBER)
+  NUMBER : TILES -->> 0..12 & 
+  !xx.(xx : TILES => {xx |-> xx mod TILES_PER_SET} <: NUMBER)
 
-VARIABLES in_sack, players_racks, players, state, num_players, player_turn, runs, groups
+VARIABLES 
+  state, 
+  players, num_players, player_turn, 
+  runs, groups, in_sack, players_racks, 
+  backup_runs, backup_groups, backup_rack, in_hand
 
 INVARIANT
   state : GAME_STATE & 
@@ -65,17 +69,29 @@ INVARIANT
   // Number of unique numbers must be equal to run size
   // Diference from minimal to maximal element must be equal to run size
   runs <: POW(TILES) &
-  !xx.(xx : runs => (card(xx) >= MIN_TILES_PER_GAME) & (card(TILE_2_COLOR[xx]) = 1) & (card(TILE_2_NUMBER[xx]) = card(xx))) &
+  !xx.(xx : runs => (card(xx) >= MIN_TILES_PER_GAME) & (card(COLOR[xx]) = 1) & (card(NUMBER[xx]) = card(xx))) &
   !xx.(xx : runs => (max(xx) - min(xx) + 1) = card(xx)) &
 
   // A group is 3 or more of the same number that are all different colors
   // Number of unique colors must be equal to the group size
   // Number of unique numbers must be equal 1
   groups <: POW(TILES) &
-  !xx.(xx : groups => (card(xx) >= MIN_TILES_PER_GAME) & (card(TILE_2_COLOR[xx]) = card(xx)) & (card(TILE_2_NUMBER[xx]) = 1))
+  !xx.(xx : groups => (card(xx) >= MIN_TILES_PER_GAME) & (card(COLOR[xx]) = card(xx)) & (card(NUMBER[xx]) = 1)) &
+
+  (state /= MELDING => (runs = backup_runs) & (groups = backup_groups)) &
+  in_hand <: TILES &
+
+  /********************************** BACKUPS ************************************************/
+
+  backup_rack <: TILES &
+  state /= MELDING => backup_groups <: groups &
+  state /= MELDING => backup_runs <: runs
 
 INITIALISATION 
-  state := NOT_RUNNING || in_sack := {} || players_racks := {} || players := {} || num_players := 0 || player_turn := 1 || runs := {} || groups := {}
+  state := NOT_RUNNING || 
+  players := {} || num_players := 0 || player_turn := 1 ||
+  runs := {} || groups := {} || in_sack := {} || players_racks := {} || 
+  backup_groups := {} || backup_runs := {} || backup_rack := {} || in_hand := {}
 
 OPERATIONS
 
@@ -107,7 +123,7 @@ OPERATIONS
       WHERE subset_tiles <: in_sack & card(subset_tiles) = NUM_STARTING_TILES
       THEN 
         IF card(players_racks |> { {} }) = 1 THEN
-          players_racks := players_racks <+ {players~(xx) |-> subset_tiles} || in_sack := in_sack - subset_tiles || state := PLAYING
+          players_racks := players_racks <+ {players~(xx) |-> subset_tiles} || in_sack := in_sack - subset_tiles || state := START_TURN
         ELSE
           players_racks := players_racks <+ {players~(xx) |-> subset_tiles} || in_sack := in_sack - subset_tiles
         END
@@ -116,19 +132,76 @@ OPERATIONS
 
   /********************************** STATE: PLAYING **********************************************/
      
-  play(xx) = 
-    PRE xx : ran(players) & players~(xx) = player_turn & state = PLAYING
+  next_turn(xx) = 
+    PRE xx : ran(players) & players~(xx) = player_turn & state = FINISH_TURN
     THEN
       // select: if theres a tile in the sack
       // if can make a move
       IF player_turn = num_players THEN
-        player_turn := 1
+        player_turn := 1 || state := START_TURN
       ELSE
-        player_turn := player_turn + 1
+        player_turn := player_turn + 1 || state := START_TURN
       END
     END;
 
+  draw_tile(xx) =
+    PRE xx : ran(players) & players~(xx) = player_turn & state = START_TURN
+    THEN
+      IF card(in_sack) > 0 THEN
+        ANY yy
+        WHERE yy : in_sack
+        THEN in_sack := in_sack - {yy} || players_racks(players~(xx)) := players_racks(players~(xx)) \/ {yy} || state := FINISH_TURN
+        END
+      ELSE
+        state := FINISH_TURN
+      END
+    END;
+ 
+  start_melding(xx, ss) = 
+    PRE xx : ran(players) & players~(xx) = player_turn & ss <: players_racks(players~(xx)) & state = START_TURN
+    THEN
+      state := MELDING || in_hand := ss || backup_groups := groups || backup_runs := runs || backup_rack := players_racks(players~(xx))
+    END;
+
+  remove_group(xx, gg) = 
+    PRE xx : ran(players) & players~(xx) = player_turn & gg : groups & state = MELDING 
+    THEN
+      groups := groups - {gg} || in_hand := in_hand \/ gg
+    END;
+
+  remove_run(xx, rr) = 
+    PRE xx : ran(players) & players~(xx) = player_turn & rr : runs & state = MELDING 
+    THEN
+      runs := runs - {rr} || in_hand := in_hand \/ rr
+    END;
+
+  add_group(xx, gg) =
+    PRE xx : ran(players) & players~(xx) = player_turn & gg <: in_hand & state = MELDING &
+    (card(gg) >= MIN_TILES_PER_GAME) & (card(COLOR[gg]) = card(gg)) & (card(NUMBER[gg]) = 1)
+    THEN
+      groups := groups \/ {gg} || in_hand := in_hand - gg
+    END;
+
+  add_run(xx, rr) =
+    PRE xx : ran(players) & players~(xx) = player_turn & rr <: in_hand & state = MELDING &
+    (card(rr) >= MIN_TILES_PER_GAME) & (card(COLOR[rr]) = 1) & (card(NUMBER[rr]) = card(rr)) & (max(rr) - min(rr) + 1) = card(rr)
+    THEN
+      runs := runs \/ {rr} || in_hand := in_hand - rr
+    END;
+
+  finish_turn(xx) = 
+    PRE xx : ran(players) & players~(xx) = player_turn & in_hand = {} & state = MELDING
+    THEN
+      state := FINISH_TURN
+    END;
   
+  reset_turn(xx) = 
+    PRE xx : ran(players) & players~(xx) = player_turn & state = MELDING
+    THEN
+      runs := backup_runs || groups := backup_groups || players_racks(players~(xx)) := backup_rack || in_hand := {} || state := START_TURN 
+    END;
+
+  /*
   yy <-- is_players_turn(xx) = 
     PRE xx : ran(players) & state = PLAYING
     THEN
@@ -138,6 +211,7 @@ OPERATIONS
         yy := FALSE
       END
     END;
+  */
 
 // Funções para alívio mental
   xx <-- draw_initial_tiless =
