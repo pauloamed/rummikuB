@@ -56,11 +56,11 @@ INVARIANT
 
   players_racks : VALID_PLAYERS_IDS +-> POW(TILES) &
   dom(players_racks) = dom(players) & // 
-  UNION ( ss ) . (ss : dom(players_racks) | players_racks(ss)) /\ in_sack = {} &
+  
+  UNION(xx).(xx : ran(players_racks) \/ runs \/ groups \/ {in_sack, in_hand} | xx) = TILES &
 
-  // Exclusive or: a piece is either in the sack or in (exactly) 1 player rack
-  !xx.(xx : TILES => ((xx : in_sack) or (card({yy | yy : ran(players_racks) & xx : yy }) = 1) or (xx: in_hand) or (#yy.( yy : runs \/ groups & xx : yy) ))) &
-  !xx.(xx : TILES => not ((xx : in_sack) & (card({yy | yy : ran(players_racks) & xx : yy }) = 1) & (xx: in_hand) & (#yy.( yy : runs \/ groups & xx : yy) ))) &
+  !xx.(xx: TILES => (card({yy | yy : (ran(players_racks) \/ runs \/ groups \/ {in_sack, in_hand}) & xx : yy}) = 1)) & 
+
 
   /********************************** RUNS AND GROUPS ************************************************/
 
@@ -91,7 +91,7 @@ INVARIANT
 INITIALISATION 
   state := NOT_RUNNING || 
   players := {} || num_players := 0 || player_turn := 1 ||
-  runs := {} || groups := {} || in_sack := 0..103 || players_racks := {} || 
+  runs := {} || groups := {} || in_sack := TILES || players_racks := {} || 
   backup_groups := {} || backup_runs := {} || backup_rack := {} || in_hand := {}
 
 OPERATIONS
@@ -100,16 +100,19 @@ OPERATIONS
 
   start_game(nn) =
     PRE state = NOT_RUNNING & nn : VALID_PLAYERS_NUMS 
-    THEN num_players := nn || state := ADDING_PLAYERS
+    THEN 
+      num_players := nn || 
+      state := ADDING_PLAYERS
     END;
 
   /********************************** STATE: ADDING_PLAYERS **********************************************/
 
   add_player(xx) = 
-    PRE xx : NAME & xx /: ran(players) & state = ADDING_PLAYERS & card(players) < num_players
+    PRE state = ADDING_PLAYERS & xx : NAME & xx /: ran(players) & card(players) < num_players
     THEN 
       IF card(players) + 1 = num_players THEN
-        players := players <+ {card(players) + 1 |-> xx} || players_racks := players_racks <+ {card(players) + 1 |-> {}} || state := DRAWING_INITIAL_TILES || in_sack := TILES
+        players := players <+ {card(players) + 1 |-> xx} || players_racks := players_racks <+ {card(players) + 1 |-> {}} || 
+        state := DRAWING_INITIAL_TILES
       ELSE
         players := players <+ {card(players) + 1 |-> xx} || players_racks := players_racks <+ {card(players) + 1 |-> {}}
       END
@@ -118,13 +121,14 @@ OPERATIONS
   /********************************** STATE: DRAWING_INITIAL_TILES **********************************************/
 
   draw_initial_tiles(xx) = 
-    PRE xx : ran(players) & players_racks(players~(xx)) = {} & state = DRAWING_INITIAL_TILES
+    PRE state = DRAWING_INITIAL_TILES & xx : ran(players) & players_racks(players~(xx)) = {}
     THEN
       ANY subset_tiles 
       WHERE subset_tiles <: in_sack & card(subset_tiles) = NUM_STARTING_TILES
       THEN 
         IF card(players_racks |> { {} }) = 1 THEN
-          players_racks := players_racks <+ {players~(xx) |-> subset_tiles} || in_sack := in_sack - subset_tiles || state := START_TURN
+          players_racks := players_racks <+ {players~(xx) |-> subset_tiles} || in_sack := in_sack - subset_tiles || 
+          state := START_TURN
         ELSE
           players_racks := players_racks <+ {players~(xx) |-> subset_tiles} || in_sack := in_sack - subset_tiles
         END
@@ -134,24 +138,27 @@ OPERATIONS
   /********************************** STATE: PLAYING **********************************************/
      
   next_turn(xx) = 
-    PRE xx : ran(players) & players~(xx) = player_turn & state = FINISH_TURN
+    PRE state = FINISH_TURN & xx : ran(players) & players~(xx) = player_turn
     THEN
       // select: if theres a tile in the sack
       // if can make a move
       IF player_turn = num_players THEN
         player_turn := 1 || state := START_TURN
       ELSE
-        player_turn := player_turn + 1 || state := START_TURN
+        player_turn := player_turn + 1 || 
+        state := START_TURN
       END
     END;
 
   draw_tile(xx) =
-    PRE xx : ran(players) & players~(xx) = player_turn & state = START_TURN
+    PRE state = START_TURN & xx : ran(players) & players~(xx) = player_turn
     THEN
       IF card(in_sack) > 0 THEN
         ANY yy
         WHERE yy : in_sack
-        THEN in_sack := in_sack - {yy} || players_racks(players~(xx)) := players_racks(players~(xx)) \/ {yy} || state := FINISH_TURN
+        THEN 
+          in_sack := in_sack - {yy} || players_racks(players~(xx)) := players_racks(players~(xx)) \/ {yy} || 
+          state := FINISH_TURN
         END
       ELSE
         state := FINISH_TURN
@@ -159,47 +166,50 @@ OPERATIONS
     END;
  
   start_melding(xx, ss) = 
-    PRE xx : ran(players) & players~(xx) = player_turn & ss <: players_racks(players~(xx)) & card(ss) > 0 & state = START_TURN
+    PRE state = START_TURN & xx : ran(players) & players~(xx) = player_turn & ss <: players_racks(players~(xx)) & card(ss) > 0
     THEN
-      state := MELDING || in_hand := ss || backup_groups := groups || backup_runs := runs || backup_rack := players_racks(players~(xx)) || players_racks(players~(xx)) := players_racks(players~(xx)) - ss
+      in_hand := ss || backup_groups := groups || backup_runs := runs || 
+      backup_rack := players_racks(players~(xx)) || players_racks(players~(xx)) := players_racks(players~(xx)) - ss ||
+      state := MELDING
     END;
 
   remove_group(xx, gg) = 
-    PRE xx : ran(players) & players~(xx) = player_turn & gg : groups & state = MELDING 
+    PRE state = MELDING  & xx : ran(players) & players~(xx) = player_turn & gg : groups
     THEN
       groups := groups - {gg} || in_hand := in_hand \/ gg
     END;
 
   remove_run(xx, rr) = 
-    PRE xx : ran(players) & players~(xx) = player_turn & rr : runs & state = MELDING 
+    PRE state = MELDING  & xx : ran(players) & players~(xx) = player_turn & rr : runs
     THEN
       runs := runs - {rr} || in_hand := in_hand \/ rr
     END;
 
   add_group(xx, gg) =
-    PRE xx : ran(players) & players~(xx) = player_turn & gg <: in_hand & state = MELDING &
+    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & gg <: in_hand &
     (card(gg) >= MIN_TILES_PER_GAME) & (card(COLOR[gg]) = card(gg)) & (card(NUMBER[gg]) = 1)
     THEN
       groups := groups \/ {gg} || in_hand := in_hand - gg
     END;
 
   add_run(xx, rr) =
-    PRE xx : ran(players) & players~(xx) = player_turn & rr <: in_hand & state = MELDING &
+    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & rr <: in_hand & 
     (card(rr) >= MIN_TILES_PER_GAME) & (card(COLOR[rr]) = 1) & (card(NUMBER[rr]) = card(rr)) & (max(rr) - min(rr) + 1) = card(rr)
     THEN
       runs := runs \/ {rr} || in_hand := in_hand - rr
     END;
 
   finish_turn(xx) = 
-    PRE xx : ran(players) & players~(xx) = player_turn & in_hand = {} & state = MELDING
+    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & in_hand = {}
     THEN
-      state := FINISH_TURN || backup_runs := {} || backup_groups := {}
+      state := FINISH_TURN || backup_runs := {} || backup_groups := {} || backup_rack := {}
     END;
   
   reset_turn(xx) = 
-    PRE xx : ran(players) & players~(xx) = player_turn & state = MELDING
+    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn
     THEN
-      runs := backup_runs || groups := backup_groups || players_racks(players~(xx)) := backup_rack || in_hand := {} || state := START_TURN 
+      runs := backup_runs || groups := backup_groups || players_racks(players~(xx)) := backup_rack || in_hand := {} ||
+      state := START_TURN 
     END;
 
   /*
