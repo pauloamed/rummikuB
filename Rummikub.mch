@@ -32,18 +32,20 @@ PROPERTIES
   MAX_TILES_PER_GAME = 13 &
 
   // Color of a tile
-  COLOR : TILES -->> 0..3 & 
-  !xx.(xx : TILES => {xx |-> IF xx > 103 THEN xx ELSE xx /(TILES_PER_SET*SET_PER_COLOR) END} <: COLOR) & 
+  COLOR : TILES -->> (0..3 \/ TILES_JOKER)  & 
+  !xx.(xx : TILES & xx > 103 => {xx |-> xx} <: COLOR) & 
+  !xx.(xx : TILES & xx <= 103 => {xx |-> xx /(TILES_PER_SET*SET_PER_COLOR)} <: COLOR) & 
 
   // Number of a tile
-  NUMBER : TILES -->> 0..12 & 
-  !xx.(xx : TILES => {xx |-> IF xx > 103 THEN xx ELSE xx mod TILES_PER_SET END} <: NUMBER) &
+  NUMBER : TILES -->> (0..12 \/ TILES_JOKER) & 
+  !xx.(xx : TILES & xx > 103 => {xx |-> xx} <: NUMBER) &
+  !xx.(xx : TILES & xx <= 103 => {xx |-> xx mod TILES_PER_SET} <: NUMBER) &
 
   // Predicate indicating whether two tiles are consecutives
   IS_SUC : TILES <-> TILES &
-  !xx.(xx : TILES_NO_JOKER => !yy.(yy : TILES_NO_JOKER => 
-    (COLOR(xx) = COLOR(yy) & (NUMBER(xx) = NUMBER(yy) + 1)) => (xx |-> yy) : IS_SUC
-  )) &
+  !(xx).(xx : TILES_NO_JOKER => (!(yy).(yy : TILES_NO_JOKER => 
+    ((COLOR(xx) = COLOR(yy) & (NUMBER(xx) = NUMBER(yy) + 1)) => (xx |-> yy) : IS_SUC)
+  ))) &
   !xx.(xx : TILES_NO_JOKER => (xx |-> JOKER_A) : IS_SUC & (JOKER_A |-> xx) : IS_SUC) &
   !xx.(xx : TILES_NO_JOKER => (xx |-> JOKER_B) : IS_SUC & (JOKER_B |-> xx) : IS_SUC) &
   (JOKER_A |-> JOKER_B) : IS_SUC & 
@@ -60,60 +62,54 @@ INVARIANT
 
   /**************************************** PLAYERS **************************************************/
 
+  player_turn : NATURAL1 & 
+  num_players : NATURAL &
+ 
+  // Players: a function of names (but partial injective and indexed by naturals)
+  players : VALID_PLAYERS_IDS >+> NAME & players : FIN(players) &
+
   // Number of players: if the game has started, there should be a valid number of players
   (state /= NOT_RUNNING => num_players : VALID_PLAYERS_NUMS) & 
 
-  // Players: a function of names (but parcial injective and indexed by naturals)
-  (state /= NOT_RUNNING => players : VALID_PLAYERS_IDS >+> NAME) &
+
 
   // Player turn
-  (state /= NOT_RUNNING => player_turn <= num_players) &
-  player_turn : NATURAL1 &
-
-  /************************************** PLAYERS RACKS AND SACK *************************************/
-
-  in_sack <: TILES &
-
-  players_racks : VALID_PLAYERS_IDS +-> POW(TILES) &
-  dom(players_racks) = dom(players) & // 
-  
-  UNION(xx).(xx : 
-    ran(players_racks) \/ // players hands
-    {aa | #bb.(bb : runs & ran(bb) = aa)} \/ // runs on the table
-    groups \/ // groups on the table
-    {in_sack, in_hand} // tiles in the sack and in the melding hand
-  | xx) = TILES &
-
-  !xx.(xx: TILES => (card({yy | 
-    yy : (ran(players_racks) \/ // players hands
-    {aa | #bb.(bb : runs & ran(bb) = aa)} \/ // runs on the table
-    groups \/ // groups on the table
-    {in_sack, in_hand}) // tiles in the sack and in the melding hand
-    & xx : yy}) = 1
-  )) & 
-
+  (state /= NOT_RUNNING => (player_turn <= num_players)) &
 
   /********************************** RUNS AND GROUPS ************************************************/
 
   // A run is 3 or more in a row of the same color
   // Number of unique colors must be equal to 1
-  // Adjacent tiles must be succesors
-  runs : POW(iseq1(TILES)) &
+  // Adjacent tiles must be successors
+  runs : POW(iseq1(TILES)) & runs : FIN(runs) &
   !xx.(xx : runs => ((size(xx) >= MIN_TILES_PER_GAME) & (card(COLOR[ran(xx) - TILES_JOKER]) = 1))) &
-  !rr.(rr : runs => !xx.( xx : dom(rr) => (xx = max(dom(rr))) or (rr(xx), rr(xx + 1)) : IS_SUC)) &
+  !rr.(rr : runs => !xx.( xx : dom(rr) => (xx = max(dom(rr))) or (rr(xx) |-> rr(xx + 1)) : IS_SUC)) &
 
   // A group is 3 or more of the same number that are all different colors
   // Number of unique colors must be equal to the group size
   // Number of unique numbers must be equal 1
-  groups <: POW(TILES) &
+  groups <: POW(TILES) & groups : FIN(groups) &
   !xx.(xx : groups => (card(xx) >= MIN_TILES_PER_GAME) & (card(COLOR[xx]) = card(xx)) & (card(NUMBER[xx]) = 1)) &
 
   in_hand <: TILES &
+
+  /************************************** PLAYERS RACKS AND SACK *************************************/
+
+  in_sack <: TILES & in_sack : FIN(in_sack) &
+
+  players_racks : VALID_PLAYERS_IDS +-> POW(TILES) &
+  dom(players_racks) = dom(players) & // 
+  
+  UNION(xx).(xx : (ran(players_racks) \/ {aa | aa : POW(TILES) & #bb.(bb : runs & ran(bb) = aa)} \/ groups \/ {in_sack, in_hand}) | xx) = TILES &
+
+  !xx.(xx: TILES => (card({yy | yy : (ran(players_racks) \/ {aa | aa : POW(TILES) & #bb.(bb : runs & ran(bb) = aa)} \/ groups \/ {in_sack, in_hand}) & xx : yy}) = 1)) & 
 
   /********************************** BACKUPS ************************************************/
 
   
   backup_rack <: TILES &
+  backup_groups <: POW(TILES) &
+  backup_runs : POW(iseq1(TILES)) &
   (state /= MELDING => backup_groups <: groups) &
   (state /= MELDING => backup_runs <: runs)
   
@@ -255,9 +251,9 @@ OPERATIONS
       yy := {xx | xx : ran(players) & players_racks(players~(xx)) = {} }
     ELSE
       yy := {}
-    END;
+    END
     
-  yy <-- player_score(xx) =
-    yy := SIGMA (zz) . (zz : players_racks(players~(xx)) | NUMBER(zz) + 1)
+//  yy <-- player_score(xx) =
+//    yy := SIGMA (zz) . (zz : players_racks(players~(xx)) | NUMBER(zz) + 1)
 
 END
