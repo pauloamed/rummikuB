@@ -1,13 +1,13 @@
 MACHINE Rummikub
 
 SETS
-  NAME = {NAME1, NAME2, NAME3, NAME4};
+  NAME = {Marcel, Daniel, Paulo, Jojo};
   GAME_STATE = {NOT_RUNNING, ADDING_PLAYERS, DRAWING_INITIAL_TILES, START_TURN, MELDING, FINISH_TURN, FINISHED}
 
 CONSTANTS
   VALID_PLAYERS_NUMS, VALID_PLAYERS_IDS,
   TILES, NUM_STARTING_TILES, TILES_PER_SET, SET_PER_COLOR, COLOR, NUMBER, MIN_TILES_PER_GAME,
-  MAX_TILES_PER_GAME, JOKER_A, JOKER_B, TILES_JOKER, IS_SUC, TILES_NO_JOKER
+  MAX_TILES_PER_GAME, JOKER_A, JOKER_B, TILES_JOKER, TILES_NO_JOKER
 
 PROPERTIES        
   VALID_PLAYERS_NUMS = 2..4 & 
@@ -39,17 +39,7 @@ PROPERTIES
   // Number of a tile
   NUMBER : TILES -->> (0..12 \/ TILES_JOKER) &
   !xx.(xx : TILES & xx > 103 => {xx |-> xx} <: NUMBER) &
-  !xx.(xx : TILES & xx <= 103 => {xx |-> xx mod TILES_PER_SET} <: NUMBER) &
-
-  // Predicate indicating whether two tiles are consecutives
-  IS_SUC : TILES <-> TILES &
-  !(xx).(xx : TILES_NO_JOKER => (!(yy).(yy : TILES_NO_JOKER => 
-    ((COLOR(xx) = COLOR(yy) & (NUMBER(xx) = NUMBER(yy) + 1)) => (xx |-> yy) : IS_SUC)
-  ))) &
-  !xx.(xx : TILES_NO_JOKER => (xx |-> JOKER_A) : IS_SUC & (JOKER_A |-> xx) : IS_SUC) &
-  !xx.(xx : TILES_NO_JOKER => (xx |-> JOKER_B) : IS_SUC & (JOKER_B |-> xx) : IS_SUC) &
-  (JOKER_A |-> JOKER_B) : IS_SUC &
-  (JOKER_B |-> JOKER_A) : IS_SUC
+  !xx.(xx : TILES & xx <= 103 => {xx |-> xx mod TILES_PER_SET} <: NUMBER)
 
 VARIABLES 
   state, 
@@ -71,8 +61,6 @@ INVARIANT
   // Number of players: if the game has started, there should be a valid number of players
   (state /= NOT_RUNNING => num_players : VALID_PLAYERS_NUMS) & 
 
-
-
   // Player turn
   (state /= NOT_RUNNING => (player_turn <= num_players)) &
 
@@ -84,9 +72,7 @@ INVARIANT
   runs : POW(iseq1(TILES)) & runs : FIN(runs) &
   !xx.(xx : runs => ((size(xx) >= MIN_TILES_PER_GAME) & (card(COLOR[ran(xx) - TILES_JOKER]) = 1))) &
   !rr.(rr : runs => !(xx,yy).( (xx : dom(rr) & yy : dom(rr) & xx > yy & rr[{xx,yy}] /\ TILES_JOKER = {}) => ( xx - yy = NUMBER(rr(xx)) - NUMBER(rr(yy))))) &
-  !rr.(rr : runs => !xx.((xx : dom(rr) & rr(xx) /: TILES_JOKER) => (xx <= NUMBER(rr(xx)) & (size(rr) - xx - 1) <= (12 - NUMBER(rr(xx)))))) &
-
-
+  !rr.(rr : runs => !xx.((xx : dom(rr) & rr(xx) /: TILES_JOKER) => (xx - 1 <= NUMBER(rr(xx)) & (size(rr) - xx - 2) <= (12 - NUMBER(rr(xx)))))) &
 
 
   // A group is 3 or more of the same number that are all different colors
@@ -230,8 +216,8 @@ OPERATIONS
     PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & 
     rr : iseq1(TILES) & ran(rr) <: in_hand &
     (size(rr) >= MIN_TILES_PER_GAME) & (card(COLOR[ran(rr) - TILES_JOKER]) = 1) &
-    !(xx,yy).( (xx : dom(rr) & yy : dom(rr) & xx > yy & rr[{xx,yy}] /\ TILES_JOKER = {}) => ( xx - yy = NUMBER(rr(xx)) - NUMBER(rr(yy)))) &
-    !xx.((xx : dom(rr) & rr(xx) /: TILES_JOKER) => (xx <= NUMBER(rr(xx)) & (size(rr) - xx - 1) <= (12 - NUMBER(rr(xx)))))
+    !(zz,yy).( (zz : dom(rr) & yy : dom(rr) & zz > yy & rr[{zz,yy}] /\ TILES_JOKER = {}) => ( zz - yy = NUMBER(rr(zz)) - NUMBER(rr(yy)))) &
+    !zz.( (zz : dom(rr) & rr(zz) /: TILES_JOKER) => (zz - 1<= NUMBER(rr(zz)) ) & (size(rr) - zz) <= (12 - NUMBER(rr(zz))))
     THEN
       runs := runs \/ {rr} || in_hand := in_hand - ran(rr)
     END;
@@ -249,16 +235,12 @@ OPERATIONS
       state := START_TURN 
     END;
 
-
-  // A primeira linha tem que ser um PRE ao invés de IF, mas fica assim pra visualizar o processo
+  /********************************** QUERIES OPERATIONS **********************************************/
   yy <-- winner =
     IF state = FINISHED THEN 
       yy := {xx | xx : ran(players) & players_racks(players~(xx)) = {} }
     ELSE
       yy := {}
     END
-    
-//  yy <-- player_score(xx) =
-//    yy := SIGMA (zz) . (zz : players_racks(players~(xx)) | NUMBER(zz) + 1)
 
 END
