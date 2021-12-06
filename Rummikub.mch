@@ -83,7 +83,11 @@ INVARIANT
   // Adjacent tiles must be successors
   runs : POW(iseq1(TILES)) & runs : FIN(runs) &
   !xx.(xx : runs => ((size(xx) >= MIN_TILES_PER_GAME) & (card(COLOR[ran(xx) - TILES_JOKER]) = 1))) &
-  !rr.(rr : runs => !xx,yy.( (xx : dom(rr) & yy : dom(rr) & xx > yy & rr[{xx,yy}] /\ TILES_JOKER = {}) => ( xx - yy = rr(xx) - rr(yy)))) &
+  !rr.(rr : runs => !(xx,yy).( (xx : dom(rr) & yy : dom(rr) & xx > yy & rr[{xx,yy}] /\ TILES_JOKER = {}) => ( xx - yy = NUMBER(rr(xx)) - NUMBER(rr(yy))))) &
+  !rr.(rr : runs => !xx.((xx : dom(rr) & rr(xx) /: TILES_JOKER) => (xx <= NUMBER(rr(xx)) & (size(rr) - xx - 1) <= (12 - NUMBER(rr(xx)))))) &
+
+
+
 
   // A group is 3 or more of the same number that are all different colors
   // Number of unique colors must be equal to the group size
@@ -108,8 +112,8 @@ INVARIANT
 
   
   backup_rack <: TILES &
-  backup_groups <: POW(TILES) &
-  backup_runs : POW(iseq1(TILES)) &
+  backup_groups <: POW(TILES) & 
+  backup_runs : POW(iseq1(TILES)) & backup_runs : FIN(backup_runs) &
   (state /= MELDING => backup_groups <: groups) &
   (state /= MELDING => backup_runs <: runs)
   
@@ -226,7 +230,8 @@ OPERATIONS
     PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & 
     rr : iseq1(TILES) & ran(rr) <: in_hand &
     (size(rr) >= MIN_TILES_PER_GAME) & (card(COLOR[ran(rr) - TILES_JOKER]) = 1) &
-    !xx,yy.( (xx : dom(rr) & yy : dom(rr) & xx > yy & rr[{xx,yy}] /\ TILES_JOKER = {}) => ( xx - yy = NUMBER(rr(xx)) - NUMBER(rr(yy))))
+    !(xx,yy).( (xx : dom(rr) & yy : dom(rr) & xx > yy & rr[{xx,yy}] /\ TILES_JOKER = {}) => ( xx - yy = NUMBER(rr(xx)) - NUMBER(rr(yy)))) &
+    !xx.((xx : dom(rr) & rr(xx) /: TILES_JOKER) => (xx <= NUMBER(rr(xx)) & (size(rr) - xx - 1) <= (12 - NUMBER(rr(xx)))))
     THEN
       runs := runs \/ {rr} || in_hand := in_hand - ran(rr)
     END;
