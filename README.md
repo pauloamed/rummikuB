@@ -6,7 +6,7 @@ The game rules can be found at https://www.boardgamehalv.com/how-to-play-rummiku
 - Each player’s initial move has to be at least 30 points
 - A run is 3 or more in a row of the same color
 - A group is 3 or more of the same number that are all different colors 
-- If a person cannot make a move, they must take an unknown tile from the sack and pass their turn.
+- In each turn, a person must either take an unknown tile from the sack or meld some pieces.
 - 106x Tiles (2x sets of 1 to 13 in 4 colors, 2x jokers)
 
 ## Current simplifications
