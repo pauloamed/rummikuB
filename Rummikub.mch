@@ -32,12 +32,12 @@ PROPERTIES
   MAX_TILES_PER_GAME = 13 &
 
   // Color of a tile
-  COLOR : TILES -->> (0..3 \/ TILES_JOKER)  & 
-  !xx.(xx : TILES & xx > 103 => {xx |-> xx} <: COLOR) & 
-  !xx.(xx : TILES & xx <= 103 => {xx |-> xx /(TILES_PER_SET*SET_PER_COLOR)} <: COLOR) & 
+  COLOR : TILES -->> (0..3 \/ TILES_JOKER)  &
+  !xx.(xx : TILES & xx > 103 => {xx |-> xx} <: COLOR) &
+  !xx.(xx : TILES & xx <= 103 => {xx |-> xx /(TILES_PER_SET*SET_PER_COLOR)} <: COLOR) &
 
   // Number of a tile
-  NUMBER : TILES -->> (0..12 \/ TILES_JOKER) & 
+  NUMBER : TILES -->> (0..12 \/ TILES_JOKER) &
   !xx.(xx : TILES & xx > 103 => {xx |-> xx} <: NUMBER) &
   !xx.(xx : TILES & xx <= 103 => {xx |-> xx mod TILES_PER_SET} <: NUMBER) &
 
@@ -48,7 +48,7 @@ PROPERTIES
   ))) &
   !xx.(xx : TILES_NO_JOKER => (xx |-> JOKER_A) : IS_SUC & (JOKER_A |-> xx) : IS_SUC) &
   !xx.(xx : TILES_NO_JOKER => (xx |-> JOKER_B) : IS_SUC & (JOKER_B |-> xx) : IS_SUC) &
-  (JOKER_A |-> JOKER_B) : IS_SUC & 
+  (JOKER_A |-> JOKER_B) : IS_SUC &
   (JOKER_B |-> JOKER_A) : IS_SUC
 
 VARIABLES 
@@ -83,7 +83,7 @@ INVARIANT
   // Adjacent tiles must be successors
   runs : POW(iseq1(TILES)) & runs : FIN(runs) &
   !xx.(xx : runs => ((size(xx) >= MIN_TILES_PER_GAME) & (card(COLOR[ran(xx) - TILES_JOKER]) = 1))) &
-  !rr.(rr : runs => !xx.( xx : dom(rr) => (xx = max(dom(rr))) or (rr(xx) |-> rr(xx + 1)) : IS_SUC)) &
+  !rr.(rr : runs => !xx,yy.( (xx : dom(rr) & yy : dom(rr) & xx > yy & rr[{xx,yy}] /\ TILES_JOKER = {}) => ( xx - yy = rr(xx) - rr(yy)))) &
 
   // A group is 3 or more of the same number that are all different colors
   // Number of unique colors must be equal to the group size
@@ -215,7 +215,7 @@ OPERATIONS
     END;
 
   add_group(xx, gg) =
-    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & 
+    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn &
     gg <: in_hand &
     (card(gg) >= MIN_TILES_PER_GAME) & (card(COLOR[gg]) = card(gg)) & (card(NUMBER[gg - TILES_JOKER]) = 1)
     THEN
@@ -224,9 +224,9 @@ OPERATIONS
 
   add_run(xx, rr) =
     PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & 
-    rr : iseq1(TILES) & 
-    !xx.(xx : runs => ((size(xx) >= MIN_TILES_PER_GAME) & (card(COLOR[ran(xx) - TILES_JOKER]) = 1))) &
-    !rr.(rr : runs => !xx.( xx : dom(rr) => (xx = max(dom(rr))) or (rr(xx), rr(xx + 1)) : IS_SUC))
+    rr : iseq1(TILES) & ran(rr) <: in_hand &
+    (size(rr) >= MIN_TILES_PER_GAME) & (card(COLOR[ran(rr) - TILES_JOKER]) = 1) &
+    !xx,yy.( (xx : dom(rr) & yy : dom(rr) & xx > yy & rr[{xx,yy}] /\ TILES_JOKER = {}) => ( xx - yy = NUMBER(rr(xx)) - NUMBER(rr(yy))))
     THEN
       runs := runs \/ {rr} || in_hand := in_hand - ran(rr)
     END;
