@@ -13,7 +13,6 @@ The game rules can be found at https://www.boardgamehalv.com/how-to-play-rummiku
 This will be a multi-phase project. Thus, some features will be implemented only in advanced versions. 
 Currently, the following simplifications are being used:
 - The player `0` is always the first to play
-- There are no joker tiles
 - There is only one round
 
 ## Supported operations
