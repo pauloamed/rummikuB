@@ -1,60 +1,25 @@
 MACHINE Rummikub
 
+SEES Tiles
+
+INCLUDES RackedPlayers, Sack, Groups, Runs
+
 SETS
-  NAME = {NAME1, NAME2, NAME3, NAME4};
+  
   GAME_STATE = {NOT_RUNNING, ADDING_PLAYERS, DRAWING_INITIAL_TILES, START_TURN, MELDING, FINISH_TURN, FINISHED}
 
 CONSTANTS
-  VALID_PLAYERS_NUMS, VALID_PLAYERS_IDS,
-  TILES, NUM_STARTING_TILES, TILES_PER_SET, SET_PER_COLOR, COLOR, NUMBER, MIN_TILES_PER_GAME,
-  MAX_TILES_PER_GAME, JOKER_A, JOKER_B, TILES_JOKER, IS_SUC, TILES_NO_JOKER
+  MIN_TILES_PER_GAME, MAX_TILES_PER_GAME
 
 PROPERTIES        
-  VALID_PLAYERS_NUMS = 2..4 & 
-  VALID_PLAYERS_IDS = 1..4 & 
-
-  /**************************************** TILES **************************************************/
-  // Tiles are actually naturals. 
-  // Color from tile X can be retrived using: (i//(TILES_PER_SET*SET_PER_COLOR)) (floor division)
-  // Number from tile X can be retrived using: (i%TILES_PER_SET) 
-  // Tile 104: Joker A, Number 104, Color 104
-  // Tile 105: Joker B, Number 105, Color 105
-
-  TILES_NO_JOKER = 0..103 &
-  JOKER_A = 104 & JOKER_B = 105 &
-  TILES_JOKER = {JOKER_A, JOKER_B} &
-  TILES = TILES_NO_JOKER \/ TILES_JOKER &
-  NUM_STARTING_TILES = 14 & 
-  TILES_PER_SET = 13 & 
-  SET_PER_COLOR = 2 & 
   MIN_TILES_PER_GAME = 3 &
+  MAX_TILES_PER_GAME = 13
 
-  MAX_TILES_PER_GAME = 13 &
-
-  // Color of a tile
-  COLOR : TILES -->> (0..3 \/ TILES_JOKER)  &
-  !xx.(xx : TILES & xx > 103 => {xx |-> xx} <: COLOR) &
-  !xx.(xx : TILES & xx <= 103 => {xx |-> xx /(TILES_PER_SET*SET_PER_COLOR)} <: COLOR) &
-
-  // Number of a tile
-  NUMBER : TILES -->> (0..12 \/ TILES_JOKER) &
-  !xx.(xx : TILES & xx > 103 => {xx |-> xx} <: NUMBER) &
-  !xx.(xx : TILES & xx <= 103 => {xx |-> xx mod TILES_PER_SET} <: NUMBER) &
-
-  // Predicate indicating whether two tiles are consecutives
-  IS_SUC : TILES <-> TILES &
-  !(xx).(xx : TILES_NO_JOKER => (!(yy).(yy : TILES_NO_JOKER => 
-    ((COLOR(xx) = COLOR(yy) & (NUMBER(xx) = NUMBER(yy) + 1)) => (xx |-> yy) : IS_SUC)
-  ))) &
-  !xx.(xx : TILES_NO_JOKER => (xx |-> JOKER_A) : IS_SUC & (JOKER_A |-> xx) : IS_SUC) &
-  !xx.(xx : TILES_NO_JOKER => (xx |-> JOKER_B) : IS_SUC & (JOKER_B |-> xx) : IS_SUC) &
-  (JOKER_A |-> JOKER_B) : IS_SUC &
-  (JOKER_B |-> JOKER_A) : IS_SUC
 
 VARIABLES 
   state, 
-  players, num_players, player_turn, 
-  runs, groups, in_sack, players_racks, 
+  player_turn, 
+  runs, groups,
   backup_runs, backup_groups, backup_rack, in_hand
 
 INVARIANT
@@ -63,46 +28,21 @@ INVARIANT
   /**************************************** PLAYERS **************************************************/
 
   player_turn : NATURAL1 & 
-  num_players : NATURAL &
- 
-  // Players: a function of names (but partial injective and indexed by naturals)
-  players : VALID_PLAYERS_IDS >+> NAME & players : FIN(players) &
+
 
   // Number of players: if the game has started, there should be a valid number of players
-  (state /= NOT_RUNNING => num_players : VALID_PLAYERS_NUMS) & 
+  (state /= NOT_RUNNING => max_players : VALID_PLAYERS_NUMS) & 
 
 
 
   // Player turn
-  (state /= NOT_RUNNING => (player_turn <= num_players)) &
+  (state /= NOT_RUNNING => (player_turn <= max_players)) &
 
-  /********************************** RUNS AND GROUPS ************************************************/
-
-  // A run is 3 or more in a row of the same color
-  // Number of unique colors must be equal to 1
-  // Adjacent tiles must be successors
-  runs : POW(iseq1(TILES)) & runs : FIN(runs) &
-  !xx.(xx : runs => ((size(xx) >= MIN_TILES_PER_GAME) & (card(COLOR[ran(xx) - TILES_JOKER]) = 1))) &
-  !rr.(rr : runs => !(xx,yy).( (xx : dom(rr) & yy : dom(rr) & xx > yy & rr[{xx,yy}] /\ TILES_JOKER = {}) => ( xx - yy = NUMBER(rr(xx)) - NUMBER(rr(yy))))) &
-  !rr.(rr : runs => !xx.((xx : dom(rr) & rr(xx) /: TILES_JOKER) => (xx <= NUMBER(rr(xx)) & (size(rr) - xx - 1) <= (12 - NUMBER(rr(xx)))))) &
-
-
-
-
-  // A group is 3 or more of the same number that are all different colors
-  // Number of unique colors must be equal to the group size
-  // Number of unique numbers must be equal 1
-  groups <: POW(TILES) & groups : FIN(groups) &
-  !xx.(xx : groups => (card(xx) >= MIN_TILES_PER_GAME) & (card(COLOR[xx]) = card(xx)) & (card(NUMBER[xx]) = 1)) &
 
   in_hand <: TILES &
 
   /************************************** PLAYERS RACKS AND SACK *************************************/
 
-  in_sack <: TILES & in_sack : FIN(in_sack) &
-
-  players_racks : VALID_PLAYERS_IDS +-> POW(TILES) &
-  dom(players_racks) = dom(players) & // 
   
   UNION(xx).(xx : (ran(players_racks) \/ {aa | aa : POW(TILES) & #bb.(bb : runs & ran(bb) = aa)} \/ groups \/ {in_sack, in_hand}) | xx) = TILES &
 
@@ -120,8 +60,7 @@ INVARIANT
 
 INITIALISATION 
   state := NOT_RUNNING || 
-  players := {} || num_players := 0 || player_turn := 1 ||
-  runs := {} || groups := {} || in_sack := TILES || players_racks := {} || 
+  player_turn := 1 ||
   backup_groups := {} || backup_runs := {} || backup_rack := {} || in_hand := {}
 
 OPERATIONS
@@ -141,7 +80,7 @@ OPERATIONS
     PRE state = ADDING_PLAYERS & xx : NAME & xx /: ran(players) & card(players) < num_players
     THEN 
       IF card(players) + 1 = num_players THEN
-        players := players <+ {card(players) + 1 |-> xx} || players_racks := players_racks <+ {card(players) + 1 |-> {}} || 
+        add_players(xx) || players_racks := players_racks <+ {card(players) + 1 |-> {}} || 
         state := DRAWING_INITIAL_TILES
       ELSE
         players := players <+ {card(players) + 1 |-> xx} || players_racks := players_racks <+ {card(players) + 1 |-> {}}
@@ -157,10 +96,10 @@ OPERATIONS
       WHERE subset_tiles <: in_sack & card(subset_tiles) = NUM_STARTING_TILES
       THEN 
         IF card(players_racks |> { {} }) = 1 THEN
-          players_racks := players_racks <+ {players~(xx) |-> subset_tiles} || in_sack := in_sack - subset_tiles || 
+          add_tiles_to_hand(xx, subset_tiles) || rmv_from_sack(subset_tiles) || 
           state := START_TURN
         ELSE
-          players_racks := players_racks <+ {players~(xx) |-> subset_tiles} || in_sack := in_sack - subset_tiles
+          add_tiles_to_hand(xx, subset_tiles) || rmv_from_sack(subset_tiles)
         END
       END
     END;
@@ -190,7 +129,7 @@ OPERATIONS
         ANY yy
         WHERE yy : in_sack
         THEN 
-          in_sack := in_sack - {yy} || players_racks(players~(xx)) := players_racks(players~(xx)) \/ {yy} || 
+          rmv_from_sack({yy}) || add_tiles_to_hand(xx, {yy}) || 
           state := FINISH_TURN
         END
       ELSE
@@ -201,7 +140,7 @@ OPERATIONS
   start_melding(xx) = 
     PRE state = START_TURN & xx : ran(players) & players~(xx) = player_turn
     THEN
-      in_hand := players_racks(players~(xx)) || players_racks(players~(xx)) := {} ||
+      in_hand := players_racks(players~(xx)) || reset_hand(xx) ||
       backup_groups := groups || backup_runs := runs || backup_rack := players_racks(players~(xx)) ||
       state := MELDING
     END;
@@ -209,13 +148,13 @@ OPERATIONS
   remove_group(xx, gg) = 
     PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & gg : groups
     THEN
-      groups := groups - {gg} || in_hand := in_hand \/ gg
+      rmv_group(gg) || in_hand := in_hand \/ gg
     END;
 
   remove_run(xx, rr) = 
     PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & rr : runs
     THEN
-      runs := runs - {rr} || in_hand := in_hand \/ ran(rr)
+      rmv_run(rr) || in_hand := in_hand \/ ran(rr)
     END;
 
   add_group(xx, gg) =
@@ -223,7 +162,7 @@ OPERATIONS
     gg <: in_hand &
     (card(gg) >= MIN_TILES_PER_GAME) & (card(COLOR[gg]) = card(gg)) & (card(NUMBER[gg - TILES_JOKER]) = 1)
     THEN
-      groups := groups \/ {gg} || in_hand := in_hand - gg
+      add_group(gg) || in_hand := in_hand - gg
     END;
 
   add_run(xx, rr) =
@@ -233,19 +172,19 @@ OPERATIONS
     !(xx,yy).( (xx : dom(rr) & yy : dom(rr) & xx > yy & rr[{xx,yy}] /\ TILES_JOKER = {}) => ( xx - yy = NUMBER(rr(xx)) - NUMBER(rr(yy)))) &
     !xx.((xx : dom(rr) & rr(xx) /: TILES_JOKER) => (xx <= NUMBER(rr(xx)) & (size(rr) - xx - 1) <= (12 - NUMBER(rr(xx)))))
     THEN
-      runs := runs \/ {rr} || in_hand := in_hand - ran(rr)
+      add_run(rr) || in_hand := in_hand - ran(rr)
     END;
 
   finish_melding(xx) = 
     PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & in_hand <<: backup_rack
     THEN
-      state := FINISH_TURN || backup_runs := {} || backup_groups := {} || backup_rack := {} || players_racks(players~(xx)) := in_hand || in_hand := {}
+      state := FINISH_TURN || backup_runs := {} || backup_groups := {} || backup_rack := {} || set_hand(xx,in_hand) || in_hand := {}
     END;
   
   reset_turn(xx) = 
     PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn
     THEN
-      runs := backup_runs || groups := backup_groups || players_racks(players~(xx)) := backup_rack || in_hand := {} ||
+      runs := backup_runs || groups := backup_groups || set_hand(xx,backup_rack) || in_hand := {} ||
       state := START_TURN 
     END;
 
