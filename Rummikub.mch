@@ -1,12 +1,8 @@
 MACHINE Rummikub
 
-SEES Tiles
+SEES Tiles, GameState
 
 INCLUDES RackedPlayers, Sack, Groups, Runs
-
-SETS
-  
-  GAME_STATE = {NOT_RUNNING, ADDING_PLAYERS, DRAWING_INITIAL_TILES, START_TURN, MELDING, FINISH_TURN, FINISHED}
 
 CONSTANTS
   MIN_TILES_PER_GAME, MAX_TILES_PER_GAME
@@ -29,34 +25,26 @@ INVARIANT
 
   player_turn : NATURAL1 & 
 
-
   // Number of players: if the game has started, there should be a valid number of players
   (state /= NOT_RUNNING => max_players : VALID_PLAYERS_NUMS) & 
 
-
-
   // Player turn
   (state /= NOT_RUNNING => (player_turn <= max_players)) &
-
-
   in_hand <: TILES &
 
   /************************************** PLAYERS RACKS AND SACK *************************************/
 
-  
   UNION(xx).(xx : (ran(players_racks) \/ {aa | aa : POW(TILES) & #bb.(bb : runs & ran(bb) = aa)} \/ groups \/ {in_sack, in_hand}) | xx) = TILES &
 
   !xx.(xx: TILES => (card({yy | yy : (ran(players_racks) \/ {aa | aa : POW(TILES) & #bb.(bb : runs & ran(bb) = aa)} \/ groups \/ {in_sack, in_hand}) & xx : yy}) = 1)) & 
 
   /********************************** BACKUPS ************************************************/
 
-  
   backup_rack <: TILES &
   backup_groups <: POW(TILES) & 
   backup_runs : POW(iseq1(TILES)) & backup_runs : FIN(backup_runs) &
   (state /= MELDING => backup_groups <: groups) &
   (state /= MELDING => backup_runs <: runs)
-  
 
 INITIALISATION 
   state := NOT_RUNNING || 
@@ -188,8 +176,8 @@ OPERATIONS
       state := START_TURN 
     END;
 
-
   /**************************** QUERIES OPERATIONS ****************************/
+
   yy <-- winner =
     IF state = FINISHED THEN 
       yy := {xx | xx : ran(players) & players_racks(players~(xx)) = {} }
