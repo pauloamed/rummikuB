@@ -4,8 +4,7 @@ CONSTANTS
   TILES, TILES_PER_SET, COLOR, NUMBER,
   JOKER_A, JOKER_B,
   TILES_JOKER, TILES_NO_JOKER,
-  SET_PER_COLOR,  
-  IS_SUC
+  SET_PER_COLOR 
 
 PROPERTIES
 
@@ -32,16 +31,6 @@ COLOR : TILES -->> (0..3 \/ TILES_JOKER)  &
 // Number of a tile
 NUMBER : TILES -->> (0..12 \/ TILES_JOKER) &
 !xx.(xx : TILES & xx > 103 => {xx |-> xx} <: NUMBER) &
-!xx.(xx : TILES & xx <= 103 => {xx |-> xx mod TILES_PER_SET} <: NUMBER) &
-
-// Predicate indicating whether two tiles are consecutives
-IS_SUC : TILES <-> TILES &
-!(xx).(xx : TILES_NO_JOKER => (!(yy).(yy : TILES_NO_JOKER => 
-  ((COLOR(xx) = COLOR(yy) & (NUMBER(xx) = NUMBER(yy) + 1)) => (xx |-> yy) : IS_SUC)
-))) &
-!xx.(xx : TILES_NO_JOKER => (xx |-> JOKER_A) : IS_SUC & (JOKER_A |-> xx) : IS_SUC) &
-!xx.(xx : TILES_NO_JOKER => (xx |-> JOKER_B) : IS_SUC & (JOKER_B |-> xx) : IS_SUC) &
-(JOKER_A |-> JOKER_B) : IS_SUC &
-(JOKER_B |-> JOKER_A) : IS_SUC
+!xx.(xx : TILES & xx <= 103 => {xx |-> xx mod TILES_PER_SET} <: NUMBER)
 
 END

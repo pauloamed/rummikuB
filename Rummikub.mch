@@ -169,8 +169,8 @@ OPERATIONS
     PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & 
     rr : iseq1(TILES) & ran(rr) <: in_hand &
     (size(rr) >= MIN_TILES_PER_GAME) & (card(COLOR[ran(rr) - TILES_JOKER]) = 1) &
-    !(xx,yy).( (xx : dom(rr) & yy : dom(rr) & xx > yy & rr[{xx,yy}] /\ TILES_JOKER = {}) => ( xx - yy = NUMBER(rr(xx)) - NUMBER(rr(yy)))) &
-    !xx.((xx : dom(rr) & rr(xx) /: TILES_JOKER) => (xx <= NUMBER(rr(xx)) & (size(rr) - xx - 1) <= (12 - NUMBER(rr(xx)))))
+    !(zz,yy).( (zz : dom(rr) & yy : dom(rr) & zz > yy & rr[{zz,yy}] /\ TILES_JOKER = {}) => ( zz - yy = NUMBER(rr(zz)) - NUMBER(rr(yy)))) &
+    !zz.( (zz : dom(rr) & rr(zz) /: TILES_JOKER) => (zz - 1 <= NUMBER(rr(zz)) ) & (size(rr) - zz) <= (12 - NUMBER(rr(zz))))
     THEN
       add_run(rr) || in_hand := in_hand - ran(rr)
     END;
@@ -189,7 +189,7 @@ OPERATIONS
     END;
 
 
-  // A primeira linha tem que ser um PRE ao invés de IF, mas fica assim pra visualizar o processo
+  /**************************** QUERIES OPERATIONS ****************************/
   yy <-- winner =
     IF state = FINISHED THEN 
       yy := {xx | xx : ran(players) & players_racks(players~(xx)) = {} }
@@ -197,7 +197,4 @@ OPERATIONS
       yy := {}
     END
     
-//  yy <-- player_score(xx) =
-//    yy := SIGMA (zz) . (zz : players_racks(players~(xx)) | NUMBER(zz) + 1)
-
 END
