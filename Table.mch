@@ -13,6 +13,7 @@ VARIABLES
   backup_runs, backup_groups, backup_rack
 
 INVARIANT
+    // Man esse carai de Union ta sendo útil? Creio q n
   UNION(xx).(xx :                                               // the union between
     (ran(players_racks) \/                                      // player racks
     {aa | aa : POW(TILES) & #bb.(bb : runs & ran(bb) = aa)} \/  // runs
@@ -47,7 +48,13 @@ draw_tiles(xx, tts) =
     {aa | aa : POW(TILES) & #bb.(bb : runs & ran(bb) = aa)} \/  // runs
     groups \/                                                   // groups
     {in_sack - tts, in_hand}                                          // in_sack and in_hand
-  ) | xx1) = TILES                                              // comprises all tiles
+  ) | xx1) = TILES &                                              // comprises all tiles
+    !xx1.(xx1 : TILES =>
+        card({ yy | yy :
+            ran(players_racks <+ {players~(xx) |-> (players_racks(players~(xx)) \/ tts)}) \/
+            { aa | aa : POW(TILES) & #(bb).(bb : runs & ran(bb) = aa) } \/
+            groups \/
+            {in_sack - tts, in_hand} & xx1 : yy }) = 1)
   THEN
     add_tiles_to_hand(xx, tts) || rmv_from_sack(tts)
   END;
@@ -55,21 +62,17 @@ draw_tiles(xx, tts) =
 // antigo reset_backup
 reset_move(xx) =
   PRE xx : ran(players) &
-    UNION(xx1).(xx1 :                                                 // the union between
-        (ran(players_racks) \/                                      // player racks
-        {aa | aa : POW(TILES) & #bb.(bb : runs & ran(bb) = aa)} \/  // runs
-        groups \/                                                   // groups
-        {in_sack, in_hand}                                          // in_sack and in_hand
-      ) | xx1) = TILES &                                           // comprises all tiles
-
-  !xx1.(xx1: TILES =>                                               // each tile
-    (card({yy | yy : 
-      (ran(players_racks) \/                                      // either belongs to a player rack
-      {aa | aa : POW(TILES) & #bb.(bb : runs & ran(bb) = aa)} \/  // or to a run
-      groups \/                                                   // or to a group
-      {in_sack, in_hand}) & xx1 : yy}                              // or into sack or to in_hand
-    ) = 1)
-      )
+      UNION(xx1).(xx1 :
+          ran(players_racks <+ {players~(xx) |-> in_hand}) \/
+          { aa | aa : POW(TILES) & #(bb).(bb : runs & ran(bb) = aa) } \/
+          groups \/
+          {in_sack, {}} | xx1) = TILES &                                       // comprises all tiles
+    !xx1.(xx1 : TILES =>
+        card({ yy | yy :
+            ran(players_racks <+ {players~(xx) |-> in_hand}) \/
+            { aa | aa : POW(TILES) & #(bb).(bb : runs & ran(bb) = aa) } \/
+            groups \/
+            {in_sack, {}} & xx1 : yy }) = 1)
   THEN
     backup_runs := {} || backup_groups := {} || backup_rack := {}/*Adicionado->*/ || reset_hand || set_rack(xx,in_hand)
   END;
@@ -177,7 +180,18 @@ add_run_to_table(rr) =
   END;
 
 set_backups_and_more(xx) =
-  PRE xx : dom(players~)
+  PRE xx : dom(players~) & players_racks(players~(xx)) : FIN(players_racks(players~(xx))) & xx : ran(players) &
+      UNION(xx1).(xx1 :
+          ran(players_racks <+ {players~(xx) |-> {}}) \/
+          { aa | aa : POW(TILES) & #(bb).(bb : runs & ran(bb) = aa) } \/
+          groups \/
+          {in_sack, players_racks(players~(xx))} | xx1) = TILES &
+      !xx1.(xx1 : TILES =>
+          card({ yy | yy :
+              ran(players_racks <+ {players~(xx) |-> {}}) \/
+              { aa | aa : POW(TILES) & #(bb).(bb : runs & ran(bb) = aa) } \/
+              groups \/
+              {in_sack, players_racks(players~(xx))} & xx1 : yy }) = 1)
   THEN
     backup_runs := runs || backup_groups := groups || backup_rack := players_racks(players~(xx)) ||
     /*Adicionado->*/set_hand(players_racks(players~(xx))) || reset_rack(xx)
@@ -188,12 +202,17 @@ recover_backups(xx) =
       backup_runs : POW(iseq(TILES)) &
       backup_groups : FIN(backup_groups) &
       backup_rack <: TILES &
-      UNION(xx1).(xx1 : 
-         (ran(players_racks <+ {players~(xx) |-> backup_rack}) \/
-         {aa | aa : POW(TILES) & #(bb).(bb : backup_runs & ran(bb) = aa) } \/ 
-         backup_groups \/
-         {in_sack, in_hand}
-      ) | xx1) = TILES & // End Union
+      UNION(xx1).(xx1 :
+          ran(players_racks <+ {players~(xx) |-> backup_rack}) \/
+          { aa | aa : POW(TILES) & #(bb).(bb : backup_runs & ran(bb) = aa)} \/
+          backup_groups \/
+          {in_sack, {}} | xx1) = TILES &
+      !xx1.(xx1 : TILES =>
+          card({ yy | yy :
+              ran(players_racks <+ {players~(xx) |-> backup_rack}) \/
+              { aa | aa : POW(TILES) & #(bb).(bb : backup_runs & ran(bb) = aa) } \/
+              backup_groups \/
+              {in_sack, {}} & xx1 : yy }) = 1) &
       !xx1.(xx1 : backup_runs => ((size(xx1) >= MIN_TILES_PER_GAME) & (card(COLOR[ran(xx1) - TILES_JOKER]) = 1))) &
       !rr.(rr : backup_runs => !(xx1,yy).( (xx1 : dom(rr) & yy : dom(rr) & xx1 > yy & rr[{xx1,yy}] /\ TILES_JOKER = {}) => ( xx1 - yy = NUMBER(rr(xx1)) - NUMBER(rr(yy))))) &
       !rr.(rr : backup_runs => !xx1.((xx1 : dom(rr) & rr(xx1) /: TILES_JOKER) => (xx1 - 1 <= NUMBER(rr(xx1)) & (size(rr) - xx1 - 2) <= (12 - NUMBER(rr(xx1)))))) &
