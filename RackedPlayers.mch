@@ -24,15 +24,17 @@ INITIALISATION
 OPERATIONS
 
 add_racked_player(xx) = 
-  PRE xx : NAME & xx /: ran(players) & card(players) < round_players
+  PRE xx : NAME & xx /: ran(players) & card(players <+ {card(players) + 1 |-> xx}) <= round_players &
+      (players_racks <+ {card(players) + 1 |-> {}}) : VALID_PLAYERS_IDS +-> POW(TILES) &
+      (players <+ {card(players) + 1 |-> xx}): VALID_PLAYERS_IDS >+> NAME
   THEN 
     add_player(xx) || players_racks := players_racks <+ {card(players) + 1 |-> {}}
   END;
 
-add_tiles_to_hand(xx, tt) =
-  PRE xx : ran(players) & tt /\ players_racks(players~(xx)) = {}
+add_tiles_to_hand(xx, tts) =
+  PRE xx : ran(players) & tts <: TILES & tts /\ players_racks(players~(xx)) = {}
   THEN
-    players_racks(players~(xx)) := players_racks(players~(xx)) \/ tt
+    players_racks(players~(xx)) := players_racks(players~(xx)) \/ tts
   END;
 
 rmv_tiles_from_hand(xx, tt) =

@@ -16,8 +16,12 @@ INVARIANT
   // Number of unique colors must be equal to the group size
   // Number of unique numbers must be equal 1
   groups <: POW(TILES) & groups : FIN(groups) &
-  !xx.(xx : groups => (card(xx) >= MIN_TILES_PER_GAME) & (card(COLOR[xx]) = card(xx)) & 
-  (card(NUMBER[xx - TILES_JOKER]) = 1) & card(xx) <= MAX_TILES_PER_GROUPS)
+  !xx.(xx : groups => 
+      (card(xx) >= MIN_TILES_PER_GAME) &
+      (card(COLOR[xx]) = card(xx)) & 
+      (card(NUMBER[xx - TILES_JOKER]) = 1) &
+      card(xx) <= MAX_TILES_PER_GROUPS
+      )
 
 
 INITIALISATION
@@ -26,9 +30,13 @@ INITIALISATION
 OPERATIONS
 
 add_group(gg) = 
-  PRE 
-    (card(gg) >= MIN_TILES_PER_GAME) & (card(COLOR[gg]) = card(gg)) & (card(NUMBER[gg - TILES_JOKER]) = 1) &
-    card(gg) <= MAX_TILES_PER_GROUPS
+  PRE gg : POW(TILES) & gg /: groups &
+      !xx.(xx : groups \/ {gg} => 
+          (card(xx) >= MIN_TILES_PER_GAME) &
+          (card(COLOR[xx]) = card(xx)) & 
+          (card(NUMBER[xx - TILES_JOKER]) = 1) &
+          card(xx) <= MAX_TILES_PER_GROUPS
+      )
   THEN groups := groups \/ {gg}
   END;
 
@@ -38,7 +46,14 @@ rmv_group(gg) =
   END;
 
 set_groups(ggs) =
-  PRE ggs <: POW(TILES) & ggs : FIN(ggs)
+  PRE 
+      ggs <: POW(TILES) & ggs : FIN(ggs) &
+      !xx.(xx : ggs => 
+          (card(xx) >= MIN_TILES_PER_GAME) &
+          (card(COLOR[xx]) = card(xx)) & 
+          (card(NUMBER[xx - TILES_JOKER]) = 1) &
+          card(xx) <= MAX_TILES_PER_GROUPS
+      )
   THEN
     groups := ggs
   END;

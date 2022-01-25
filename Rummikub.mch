@@ -100,7 +100,10 @@ OPERATIONS
   start_melding(xx) = 
     PRE state = START_TURN & xx : ran(players) & players~(xx) = player_turn
     THEN
-      set_hand(players_racks(players~(xx))) || reset_rack(xx) || set_backups(xx) ||
+    // NAO PODE CHAMAR SIMULTANEAMENTE OPERACOES DE UM MSM INCLUDE
+    // todas essas 3 operações vem de Table
+    // set_hand(players_racks(players~(xx))) || reset_rack(xx) || set_backups(xx)
+      set_backups_and_more(xx) ||
       state := MELDING
     END;
 
@@ -133,13 +136,20 @@ OPERATIONS
   finish_melding(xx) = 
     PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & in_hand <<: backup_rack
     THEN
-      reset_backups || reset_hand || set_rack(xx,in_hand) || state := FINISH_TURN
+    // NAO PODE CHAMAR SIMULTANEAMENTE OPERACOES DE UM MSM INCLUDE
+    // reset_backup || reset_hand || set_rack(xx, in_hand) || state := FINISH_TURN
+    // Oq tava antes era o reset_backup, e como ele só era usado aqui e em conjunto com aquelas outras operações,
+    // dava pra colocar elas dentro do reset_backup pra fzr funcionar. Falta só achar um nome melhor.
+      reset_move(xx) || state := FINISH_TURN
     END;
   
   reset_turn(xx) = 
     PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn
     THEN
-      recover_backups(xx) || reset_hand || state := START_TURN 
+    // NAO PODE CHAMAR SIMULTANEAMENTE OPERACOES DE UM MSM INCLUDE
+    // recover_backups(xx) || reset_hand || state := START_TURN 
+    // recover_backups só é chamado aqui, então bora por o reset_hand dentro (é oq funciona man k)
+      recover_backups(xx) || state := START_TURN 
     END;
 
   /**************************** QUERIES OPERATIONS ****************************/
