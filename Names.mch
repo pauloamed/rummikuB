@@ -1,5 +1,19 @@
 MACHINE Names
 
-SETS NAME = {Marcel, Daniel, Paulo, Jojo}
+SETS NAME = {
+  Marcel, 
+  Daniel, 
+  Paulo, 
+  Jonathan,
+  Joseph,
+  Jotaro,
+  Josuke,
+  Giorno,
+  Joline,
+  Natalia,
+  Apiah,
+  Bart,
+  Bento
+  }
 
 END

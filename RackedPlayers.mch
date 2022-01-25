@@ -41,13 +41,13 @@ rmv_tiles_from_hand(xx, tt) =
     players_racks(players~(xx)) := players_racks(players~(xx)) - tt
   END;
 
-reset_hand(xx) = 
+reset_rack(xx) = 
   PRE xx : ran(players)
   THEN
     players_racks(players~(xx)) := {}
   END;
 
-set_hand(xx, tt) =
+set_rack(xx, tt) =
   PRE xx : ran(players) & tt <: TILES
   THEN
     players_racks(players~(xx)) := tt

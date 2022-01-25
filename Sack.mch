@@ -14,9 +14,9 @@ INITIALISATION
 
 OPERATIONS
 
-add_to_sack(tt) = 
-  PRE tt /\ in_sack = {}
-  THEN in_sack := in_sack \/ tt
+set_sack(tts) = 
+  PRE tts = TILES
+  THEN in_sack := tts
   END;
 
 rmv_from_sack(tt) = 

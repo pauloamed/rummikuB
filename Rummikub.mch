@@ -1,22 +1,12 @@
 MACHINE Rummikub
 
-SEES Tiles, GameState
+SEES Tiles, GameState, Names
 
-INCLUDES RackedPlayers, Sack, Groups, Runs
-
-CONSTANTS
-  MIN_TILES_PER_GAME, MAX_TILES_PER_GAME
-
-PROPERTIES        
-  MIN_TILES_PER_GAME = 3 &
-  MAX_TILES_PER_GAME = 13
-
+INCLUDES Table
 
 VARIABLES 
-  state, 
-  player_turn, 
-  runs, groups,
-  backup_runs, backup_groups, backup_rack, in_hand
+  state, player_turn
+  
 
 INVARIANT
   state : GAME_STATE & 
@@ -26,30 +16,18 @@ INVARIANT
   player_turn : NATURAL1 & 
 
   // Number of players: if the game has started, there should be a valid number of players
-  (state /= NOT_RUNNING => max_players : VALID_PLAYERS_NUMS) & 
+  (state /= NOT_RUNNING => round_players : VALID_PLAYERS_NUMS) & 
 
   // Player turn
-  (state /= NOT_RUNNING => (player_turn <= max_players)) &
-  in_hand <: TILES &
+  (state /= NOT_RUNNING => (player_turn <= round_players)) &
 
-  /************************************** PLAYERS RACKS AND SACK *************************************/
-
-  UNION(xx).(xx : (ran(players_racks) \/ {aa | aa : POW(TILES) & #bb.(bb : runs & ran(bb) = aa)} \/ groups \/ {in_sack, in_hand}) | xx) = TILES &
-
-  !xx.(xx: TILES => (card({yy | yy : (ran(players_racks) \/ {aa | aa : POW(TILES) & #bb.(bb : runs & ran(bb) = aa)} \/ groups \/ {in_sack, in_hand}) & xx : yy}) = 1)) & 
-
-  /********************************** BACKUPS ************************************************/
-
-  backup_rack <: TILES &
-  backup_groups <: POW(TILES) & 
-  backup_runs : POW(iseq1(TILES)) & backup_runs : FIN(backup_runs) &
   (state /= MELDING => backup_groups <: groups) &
   (state /= MELDING => backup_runs <: runs)
 
 INITIALISATION 
   state := NOT_RUNNING || 
-  player_turn := 1 ||
-  backup_groups := {} || backup_runs := {} || backup_rack := {} || in_hand := {}
+  player_turn := 1
+
 
 OPERATIONS
 
@@ -58,20 +36,18 @@ OPERATIONS
   start_game(nn) =
     PRE state = NOT_RUNNING & nn : VALID_PLAYERS_NUMS 
     THEN 
-      num_players := nn || 
-      state := ADDING_PLAYERS
+      set_round_players(nn) || state := ADDING_PLAYERS
     END;
 
   /********************************** STATE: ADDING_PLAYERS **********************************************/
 
   add_player(xx) = 
-    PRE state = ADDING_PLAYERS & xx : NAME & xx /: ran(players) & card(players) < num_players
+    PRE state = ADDING_PLAYERS & xx : NAME & xx /: ran(players) & card(players) < round_players
     THEN 
-      IF card(players) + 1 = num_players THEN
-        add_players(xx) || players_racks := players_racks <+ {card(players) + 1 |-> {}} || 
-        state := DRAWING_INITIAL_TILES
+      IF card(players) + 1 = round_players THEN
+        add_racked_player(xx) || state := DRAWING_INITIAL_TILES
       ELSE
-        players := players <+ {card(players) + 1 |-> xx} || players_racks := players_racks <+ {card(players) + 1 |-> {}}
+        add_racked_player(xx)
       END
     END;
 
@@ -84,10 +60,9 @@ OPERATIONS
       WHERE subset_tiles <: in_sack & card(subset_tiles) = NUM_STARTING_TILES
       THEN 
         IF card(players_racks |> { {} }) = 1 THEN
-          add_tiles_to_hand(xx, subset_tiles) || rmv_from_sack(subset_tiles) || 
-          state := START_TURN
+          draw_tiles(xx, subset_tiles) || state := START_TURN
         ELSE
-          add_tiles_to_hand(xx, subset_tiles) || rmv_from_sack(subset_tiles)
+          draw_tiles(xx, subset_tiles)
         END
       END
     END;
@@ -98,15 +73,13 @@ OPERATIONS
     PRE state = FINISH_TURN & xx : ran(players) & players~(xx) = player_turn
     THEN
       // first checks if there is a winner
-      IF players_racks(players~(xx)) = {} THEN
-        state := FINISHED
+      IF players_racks(players~(xx)) = {} THEN state := FINISHED
       // select: if theres a tile in the sack
       // if can make a move
-      ELSIF player_turn = num_players THEN
+      ELSIF player_turn = round_players THEN
         player_turn := 1 || state := START_TURN
       ELSE
-        player_turn := player_turn + 1 || 
-        state := START_TURN
+        player_turn := player_turn + 1 || state := START_TURN
       END
     END;
 
@@ -117,8 +90,7 @@ OPERATIONS
         ANY yy
         WHERE yy : in_sack
         THEN 
-          rmv_from_sack({yy}) || add_tiles_to_hand(xx, {yy}) || 
-          state := FINISH_TURN
+          draw_tiles(xx, {yy}) || state := FINISH_TURN
         END
       ELSE
         state := FINISH_TURN
@@ -128,52 +100,46 @@ OPERATIONS
   start_melding(xx) = 
     PRE state = START_TURN & xx : ran(players) & players~(xx) = player_turn
     THEN
-      in_hand := players_racks(players~(xx)) || reset_hand(xx) ||
-      backup_groups := groups || backup_runs := runs || backup_rack := players_racks(players~(xx)) ||
+      set_hand(players_racks(players~(xx))) || reset_rack(xx) || set_backups(xx) ||
       state := MELDING
     END;
 
-  remove_group(xx, gg) = 
+  remove_group_from_table_2(xx, gg) = 
     PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & gg : groups
     THEN
-      rmv_group(gg) || in_hand := in_hand \/ gg
+      remove_group_from_table(gg)
     END;
 
-  remove_run(xx, rr) = 
+  remove_run_from_table_2(xx, rr) = 
     PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & rr : runs
     THEN
-      rmv_run(rr) || in_hand := in_hand \/ ran(rr)
+      remove_run_from_table(rr)
     END;
 
-  add_group(xx, gg) =
+  add_group_to_table_2(xx, gg) =
     PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn &
-    gg <: in_hand &
-    (card(gg) >= MIN_TILES_PER_GAME) & (card(COLOR[gg]) = card(gg)) & (card(NUMBER[gg - TILES_JOKER]) = 1)
+    gg <: in_hand
     THEN
-      add_group(gg) || in_hand := in_hand - gg
+      add_group_to_table(gg)
     END;
 
-  add_run(xx, rr) =
+  add_run_to_table_2(xx, rr) =
     PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & 
-    rr : iseq1(TILES) & ran(rr) <: in_hand &
-    (size(rr) >= MIN_TILES_PER_GAME) & (card(COLOR[ran(rr) - TILES_JOKER]) = 1) &
-    !(zz,yy).( (zz : dom(rr) & yy : dom(rr) & zz > yy & rr[{zz,yy}] /\ TILES_JOKER = {}) => ( zz - yy = NUMBER(rr(zz)) - NUMBER(rr(yy)))) &
-    !zz.( (zz : dom(rr) & rr(zz) /: TILES_JOKER) => (zz - 1 <= NUMBER(rr(zz)) ) & (size(rr) - zz) <= (12 - NUMBER(rr(zz))))
+    rr : iseq1(TILES) & ran(rr) <: in_hand
     THEN
-      add_run(rr) || in_hand := in_hand - ran(rr)
+      add_run_to_table(rr)
     END;
 
   finish_melding(xx) = 
     PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & in_hand <<: backup_rack
     THEN
-      state := FINISH_TURN || backup_runs := {} || backup_groups := {} || backup_rack := {} || set_hand(xx,in_hand) || in_hand := {}
+      reset_backups || reset_hand || set_rack(xx,in_hand) || state := FINISH_TURN
     END;
   
   reset_turn(xx) = 
     PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn
     THEN
-      runs := backup_runs || groups := backup_groups || set_hand(xx,backup_rack) || in_hand := {} ||
-      state := START_TURN 
+      recover_backups(xx) || reset_hand || state := START_TURN 
     END;
 
   /**************************** QUERIES OPERATIONS ****************************/
