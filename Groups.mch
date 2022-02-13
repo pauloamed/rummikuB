@@ -9,44 +9,67 @@ PROPERTIES
   MAX_TILES_PER_GROUPS = 4
 
 VARIABLES
-  groups
+  free_indexes, groups
 
 INVARIANT
+  free_indexes : GAME_INDEXES --> BOOL &
+
   // A group is 3 or more of the same number that are all different colors
   // Number of unique colors must be equal to the group size
   // Number of unique numbers must be equal 1
-  groups <: POW(TILES) & groups : FIN(groups) &
-  !xx.(xx : groups => (card(xx) >= MIN_TILES_PER_GAME) & (card(COLOR[xx]) = card(xx)) & 
-  (card(NUMBER[xx - TILES_JOKER]) = 1) & card(xx) <= MAX_TILES_PER_GROUPS)
+  groups : TILES --> GAME_INDEXES &
+
+  !xx.(xx : ran(groups) => 
+    xx = 0 or
+    (
+      // dom(groups|>{xx}): todas tiles que fazem parte do grupo com id xx
+      card(dom(groups|>{xx})) >= MIN_TILES_PER_GAME & 
+      card(dom(groups|>{xx})) <= MAX_TILES_PER_GROUPS &
+      card(COLOR[dom(groups|>{xx})]) = card(dom(groups|>{xx})) & 
+      card(NUMBER[dom(groups|>{xx}) - TILES_JOKER]) = 1 
+    )
+  ) 
 
 
 INITIALISATION
-  groups := {}
+  groups := TILES * {0} || free_indexes := GAME_INDEXES * {TRUE}
 
 OPERATIONS
 
 add_group(gg) = 
-  PRE 
-    (card(gg) >= MIN_TILES_PER_GAME) & (card(COLOR[gg]) = card(gg)) & (card(NUMBER[gg - TILES_JOKER]) = 1) &
-    card(gg) <= MAX_TILES_PER_GROUPS
-  THEN groups := groups \/ {gg}
+  PRE
+    gg : TILES --> BOOL & // dom(gg|>{TRUE})
+    card(dom(gg|>{TRUE})) >= MIN_TILES_PER_GAME & 
+    card(dom(gg|>{TRUE})) <= MAX_TILES_PER_GROUPS &
+    card(COLOR[dom(gg|>{TRUE})]) = card(dom(gg|>{TRUE})) & 
+    card(NUMBER[dom(gg|>{TRUE}) - TILES_JOKER]) = 1
+  THEN
+      ANY next_idx WHERE next_idx = min(dom(free_indexes|>{FALSE})) THEN
+      groups := groups <+ dom(gg|>{TRUE}) * {next_idx} || 
+      free_indexes(next_idx) := FALSE
+      END
   END;
 
 rmv_group(gg) =
-  PRE gg : groups
-  THEN groups := groups - {gg}
+  PRE 
+    // dom(gg |> {TRUE}): ids que estao no grupo removido
+    // groups[dom(gg |> {TRUE})]: indice do grupo a ser removido
+    gg : TILES --> BOOL &
+    card(groups[dom(gg |> {TRUE})]) = 1 &
+    groups[dom(gg |> {TRUE})] /= {0} &
+    card( dom(gg |> {TRUE}) <<| groups) = card(groups) - 1
+  THEN 
+    groups := groups <+ dom(gg |> {TRUE}) * {0} || 
+    free_indexes := free_indexes <+ groups[dom(gg |> {TRUE})] * {TRUE}
+    
   END;
 
 set_groups(ggs) =
-  PRE ggs <: POW(TILES) & ggs : FIN(ggs)
+  PRE ggs : TILES --> GAME_INDEXES
   THEN
     groups := ggs
   END;
 
-clear_groups = 
-  PRE 1=1
-  THEN
-    groups := {}
-  END
+clear_groups = groups := TILES * {0}
 
 END

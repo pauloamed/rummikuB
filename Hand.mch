@@ -6,29 +6,27 @@ VARIABLES
   in_hand
 
 INVARIANT
-  in_hand <: TILES & in_hand : FIN(in_hand)
+  in_hand : TILES --> BOOL
 
 INITIALISATION
-  in_hand := {}
+  in_hand := TILES * {FALSE}
 
 OPERATIONS
 
+set_hand(tts) = in_hand := tts;
+
 add_to_hand(tts) = 
-  PRE tts /\ in_hand = {}
+  PRE tts : TILES --> BOOL & dom(tts |> {TRUE}) /\ dom(in_hand |> {TRUE}) = {}
   THEN
-    in_hand := in_hand \/ tts
+    in_hand := in_hand <+ (tts |> {TRUE})
   END;
 
-set_hand(tts) = 
-  in_hand := tts;
 
-reset_hand = 
-  in_hand := {};
+reset_hand = in_hand := TILES * {FALSE};
 
-rmv_from_hand(tts) = 
-  PRE tts <: in_hand
-  THEN
-    in_hand := in_hand - tts
+rmv_from_hand(tt) = 
+  PRE tt : TILES --> BOOL & dom(tt |> {TRUE}) <: dom(in_hand |> {TRUE})
+  THEN in_hand := in_hand <+ dom(tt |> {TRUE}) * {FALSE}
   END
 
 END
