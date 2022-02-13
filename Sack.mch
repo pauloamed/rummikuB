@@ -6,22 +6,19 @@ VARIABLES
   in_sack
 
 INVARIANT
-  in_sack <: TILES & in_sack : FIN(in_sack)
+  in_sack : TILES --> BOOL
 
 INITIALISATION
-  in_sack := TILES
+  in_sack := TILES * {FALSE}
 
 
 OPERATIONS
 
-set_sack(tts) = 
-  PRE tts = TILES
-  THEN in_sack := tts
-  END;
+set_sack =  in_sack := TILES * {TRUE};
 
 rmv_from_sack(tt) = 
-  PRE tt <: in_sack
-  THEN in_sack := in_sack - tt
+  PRE tt : TILES --> BOOL & dom(tt |> {TRUE}) <: dom(in_sack |> {TRUE})
+  THEN in_sack := in_sack <+ dom(tt |> {TRUE}) * {FALSE}
   END
 
 END
