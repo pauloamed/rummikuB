@@ -2,8 +2,12 @@ MACHINE Runs
 
 SEES Tiles, TileGames
 
-CONSTANTS RUNS_INDEXES
-PROPERTIES RUNS_INDEXES = 0..13
+CONSTANTS 
+  RUNS_INDEXES, 
+  EMPTY_RUN
+PROPERTIES 
+  RUNS_INDEXES = 0..13 & 
+  EMPTY_RUN : TILES --> RUNS_INDEXES & EMPTY_RUN = TILES * {0}
 
 
 VARIABLES
@@ -23,7 +27,7 @@ INVARIANT
 
 
 INITIALISATION
-  runs := {} || free_indexes := GAME_INDEXES * {TRUE}
+  runs := (%ii.(ii:GAME_INDEXES| TILES * {0})) || free_indexes := GAME_INDEXES * {TRUE}
 
 OPERATIONS
 
@@ -55,10 +59,6 @@ set_runs(rrs) =
     runs := rrs
   END;
 
-clear_runs = 
-  PRE 1=1
-  THEN
-    runs := {}
-  END
+clear_runs = runs := (%ii.(ii:GAME_INDEXES| TILES * {0}))
 
 END

@@ -1,0 +1,21 @@
+IMPLEMENTATION Names_i
+REFINES Names
+/*
+VALUES NAME = {
+  "Marcel", 
+  "Daniel", 
+  "Paulo", 
+  "Jonathan",
+  "Joseph",
+  "Jotaro",
+  "Josuke",
+  "Giorno",
+  "Joline",
+  "Natalia",
+  "Apiah",
+  "Bart",
+  "Bento",
+  "NILL"
+}
+*/
+END

@@ -3,17 +3,18 @@ MACHINE Players
 SEES Names
 
 CONSTANTS
-  VALID_PLAYERS_NUMS, VALID_PLAYERS_IDS
+  VALID_PLAYERS_NUMS, VALID_PLAYERS_IDS, VALID_ROUNDS
 
 PROPERTIES
-  VALID_PLAYERS_NUMS = 2..12 &
-  VALID_PLAYERS_IDS = 1..12
+  VALID_PLAYERS_NUMS = 2..5 &
+  VALID_PLAYERS_IDS = 1..5 &
+  VALID_ROUNDS = 0..4
 
 VARIABLES
   round_players, players
 
 INVARIANT
-  round_players : NATURAL &
+  round_players : VALID_ROUNDS &
 
   // Players: a function of names (but partial injective and indexed by naturals)
   players : VALID_PLAYERS_IDS >+> NAME & players : FIN(players) &
@@ -21,7 +22,7 @@ INVARIANT
   card(players) < round_players
 
 INITIALISATION
-  players := {} || round_players := 0
+  players := VALID_PLAYERS_IDS * {NILL} || round_players := 0
 
 OPERATIONS
 

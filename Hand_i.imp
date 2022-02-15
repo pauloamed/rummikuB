@@ -1,0 +1,53 @@
+IMPLEMENTATION Hand_i
+REFINES Hand
+
+SEES Tiles
+
+CONCRETE_VARIABLES
+  in_hand_i
+
+INVARIANT
+  in_hand_i : TILES --> BOOL & in_hand_i = in_hand
+
+INITIALISATION
+  in_hand_i := TILES * {FALSE}
+
+OPERATIONS
+
+set_hand(tts) = in_hand_i := tts;
+reset_hand = in_hand_i := TILES * {FALSE};
+
+add_to_hand(tts) = 
+  VAR ii IN
+    ii := 0;
+    WHILE ii <= 105 DO
+      VAR tii IN
+        tii := tts(ii);
+        IF tii = TRUE THEN
+          in_hand_i(ii) := TRUE
+        END
+      END;
+      ii := ii + 1
+    INVARIANT ii : TILES
+    VARIANT 105 - ii
+    END
+  END;
+
+rmv_from_hand(tts) = 
+  VAR ii IN
+    ii := 0;
+    WHILE ii <= 105 DO
+      VAR tii IN
+        tii := tts(ii);
+        IF tii = TRUE THEN
+          in_hand_i(ii) := FALSE
+        END
+      END;
+      ii := ii + 1
+    INVARIANT ii : TILES
+    VARIANT 105 - ii
+    END
+  END
+
+
+END

@@ -1,0 +1,90 @@
+IMPLEMENTATION Runs_i
+REFINES Runs
+
+SEES Tiles, TileGames
+
+VALUES RUNS_INDEXES = 0..13; EMPTY_RUN = TILES * {0}
+
+
+CONCRETE_VARIABLES
+  free_indexes_i, runs_i
+
+INVARIANT
+  free_indexes_i : GAME_INDEXES --> BOOL & free_indexes = free_indexes_i &
+  runs_i : GAME_INDEXES --> (TILES --> RUNS_INDEXES) & runs = runs_i &
+  
+
+  // A run is 3 or more in a row of the same color
+  // Number of unique colors must be equal to 1
+  // Adjacent tiles must be successors
+  !rr.(rr : ran(runs_i) => ((card(rr) >= MIN_TILES_PER_GAME) & (card(COLOR[ran(rr) - TILES_JOKER]) = 1))) &
+  !rr.(rr : ran(runs_i) => !(xx,yy).( (xx : dom(rr) & yy : dom(rr) & xx > yy & rr[{xx,yy}] /\ TILES_JOKER = {}) => ( xx - yy = NUMBER(rr(xx)) - NUMBER(rr(yy))))) &
+  !rr.(rr : ran(runs_i) => !xx.((xx : dom(rr) & rr(xx) /: TILES_JOKER) => (xx - 1 <= NUMBER(rr(xx)) & (size(rr) - xx - 2) <= (12 - NUMBER(rr(xx))))))
+
+
+INITIALISATION
+  runs_i := ??????; free_indexes_i := GAME_INDEXES * {TRUE}
+
+OPERATIONS
+add_run(rr) = 
+  BEGIN
+  VAR next_idx IN
+    next_idx := -1;
+    VAR ii IN
+      ii := 0;
+      WHILE (ii <= MAX_GAME_INDEX) & next_idx = -1 DO
+        VAR fii IN
+          fii := free_indexes_i(ii);
+          IF fii = TRUE THEN
+            next_idx := ii;
+            free_indexes_i(next_idx) := FALSE
+          END
+        END;
+        ii := ii + 1
+      INVARIANT ii : TILES
+      VARIANT (MAX_GAME_INDEX - ii)
+      END
+    END;
+    VAR ii IN
+      ii := 0;
+      WHILE ii <= 105 DO
+        VAR rii IN
+          rii := rr(ii);
+          IF rii /= 0 THEN
+            runs_i(next_idx)(ii) := rii
+          END
+        END;
+        ii := ii + 1
+      INVARIANT ii : TILES
+      VARIANT 105 - ii
+      END
+    END
+  END
+  END;
+
+rmv_run(rr) =
+  BEGIN
+    VAR ii, run_id IN
+    run_id := -1;
+    ii := 0;
+    WHILE (ii < MAX_GAME_INDEX) & run_id = -1 DO
+      VAR rii IN
+        rii := runs_i(ii);
+        IF rii = rr THEN
+          run_id := ii;
+          runs_i(run_id) := TILES * {0}
+        END
+      END;
+      ii := ii + 1
+    INVARIANT ii : TILES
+    VARIANT (105 - ii)
+    END;
+    free_indexes_i(run_id) := TRUE
+    END
+  END;
+
+set_runs(rrs) = runs_i := rrs;
+
+clear_runs = runs_i := ??????;
+
+END

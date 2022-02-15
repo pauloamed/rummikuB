@@ -1,0 +1,35 @@
+IMPLEMENTATION Players_i
+REFINES Players
+SEES Names
+
+VALUES
+  VALID_PLAYERS_NUMS = 2..5;
+  VALID_PLAYERS_IDS = 1..5;
+  VALID_ROUNDS = 0..4
+
+CONCRETE_VARIABLES
+  round_players_i, players_i
+
+INVARIANT
+  round_players_i : VALID_ROUNDS & round_players_i = round_players &
+
+  // Players: a function of names (but partial injective and indexed by naturals)
+  players_i : VALID_PLAYERS_IDS --> NAME & players_i = players &
+
+  card(players_i) < round_players_i
+
+INITIALISATION
+  players_i := VALID_PLAYERS_IDS * {NILL}; 
+  round_players_i := 0
+
+OPERATIONS
+
+set_round_players(nn) = round_players_i := nn;
+
+add_player(xx) =
+  VAR new_id IN
+    new_id := card(players_i) + 1;
+    players_i(new_id) := xx
+  END
+
+END

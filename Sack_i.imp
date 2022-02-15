@@ -1,0 +1,35 @@
+IMPLEMENTATION Sack_i
+REFINES Sack
+SEES Tiles
+
+CONCRETE_VARIABLES
+  in_sack_i
+
+INVARIANT
+  in_sack_i : TILES --> BOOL &
+  in_sack_i = in_sack
+
+INITIALISATION
+  in_sack_i := TILES * {FALSE}
+
+OPERATIONS
+
+set_sack = in_sack_i := TILES * {FALSE};
+
+rmv_from_sack(tt) = 
+  VAR ii IN
+    ii := 0;
+    WHILE ii <= 105 DO
+      VAR tii IN
+        tii := tt(ii);
+        IF tii = TRUE THEN
+          in_sack_i(ii) := FALSE
+        END
+      END;
+      ii := ii + 1
+    INVARIANT ii : TILES
+    VARIANT 105 - ii
+    END
+  END
+
+END

@@ -13,7 +13,13 @@ INITIALISATION
 
 OPERATIONS
 
-set_hand(tts) = in_hand := tts;
+set_hand(tts) =   
+  PRE tts : TILES --> BOOL
+  THEN
+    in_hand := tts
+  END;
+
+reset_hand = in_hand := TILES * {FALSE};
 
 add_to_hand(tts) = 
   PRE tts : TILES --> BOOL & dom(tts |> {TRUE}) /\ dom(in_hand |> {TRUE}) = {}
@@ -21,12 +27,9 @@ add_to_hand(tts) =
     in_hand := in_hand <+ (tts |> {TRUE})
   END;
 
-
-reset_hand = in_hand := TILES * {FALSE};
-
-rmv_from_hand(tt) = 
-  PRE tt : TILES --> BOOL & dom(tt |> {TRUE}) <: dom(in_hand |> {TRUE})
-  THEN in_hand := in_hand <+ dom(tt |> {TRUE}) * {FALSE}
+rmv_from_hand(tts) = 
+  PRE tts : TILES --> BOOL & dom(tts |> {TRUE}) <: dom(in_hand |> {TRUE})
+  THEN in_hand := in_hand <+ dom(tts |> {TRUE}) * {FALSE}
   END
 
 END

@@ -1,6 +1,7 @@
 MACHINE Names
 
 SETS NAME = {
+/*
   Marcel, 
   Daniel, 
   Paulo, 
@@ -11,9 +12,11 @@ SETS NAME = {
   Giorno,
   Joline,
   Natalia,
+*/
   Apiah,
   Bart,
-  Bento
+  Bento,
+  NILL
   }
 
 END

@@ -1,0 +1,92 @@
+IMPLEMENTATION Groups_i
+REFINES Groups
+
+SEES Tiles, TileGames
+
+VALUES
+  MAX_TILES_PER_GROUPS = 4
+
+CONCRETE_VARIABLES
+  free_indexes_i, groups_i
+
+INVARIANT
+  free_indexes_i : GAME_INDEXES --> BOOL & free_indexes = free_indexes_i &
+
+  groups_i : TILES --> GAME_INDEXES & groups = groups_i &
+  !xx.(xx : ran(groups_i) => 
+    xx = 0 or
+    (
+      // dom(groups|>{xx}): todas tiles que fazem parte do grupo com id xx
+      card(dom(groups_i|>{xx})) >= MIN_TILES_PER_GAME & 
+      card(dom(groups_i|>{xx})) <= MAX_TILES_PER_GROUPS &
+      card(COLOR[dom(groups_i|>{xx})]) = card(dom(groups_i|>{xx})) & 
+      card(NUMBER[dom(groups_i|>{xx}) - TILES_JOKER]) = 1 
+    )
+  ) 
+
+INITIALISATION
+  groups_i := TILES * {0};
+  free_indexes_i := GAME_INDEXES * {TRUE}
+
+OPERATIONS
+
+add_group(gg) = 
+  BEGIN
+  VAR next_idx IN
+    next_idx := -1;
+    VAR ii IN
+      ii := 0;
+      WHILE (ii <= MAX_GAME_INDEX) & next_idx = -1 DO
+        VAR fii IN
+          fii := free_indexes_i(ii);
+          IF fii = TRUE THEN
+            next_idx := ii;
+            free_indexes_i(next_idx) := FALSE
+          END
+        END;
+        ii := ii + 1
+      INVARIANT ii : TILES
+      VARIANT (MAX_GAME_INDEX - ii)
+      END
+    END;
+    VAR ii IN
+      ii := 0;
+      WHILE ii <= 105 DO
+        VAR gii IN
+          gii := gg(ii);
+          IF gii = TRUE THEN
+            groups_i(ii) := next_idx
+          END
+        END;
+        ii := ii + 1
+      INVARIANT ii : TILES
+      VARIANT 105 - ii
+      END
+    END
+  END
+  END;
+
+rmv_group(gg) =
+  BEGIN
+    VAR ii, group_id IN
+    group_id := -1;
+    ii := 0;
+    WHILE (ii <= 105) & group_id = -1 DO
+      VAR gii IN
+        gii := gg(ii);
+        IF gii = TRUE THEN
+          group_id := groups_i(ii);
+          groups_i(ii) := 0
+        END
+      END;
+      ii := ii + 1
+    INVARIANT ii : TILES
+    VARIANT (105 - ii)
+    END;
+    free_indexes_i(group_id) := TRUE
+    END
+  END;
+
+set_groups(ggs) = groups_i := ggs;
+clear_groups = groups_i := TILES * {0}
+END

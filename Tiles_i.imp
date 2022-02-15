@@ -1,0 +1,7 @@
+IMPLEMENTATION Tiles_i
+REFINES Tiles
+
+VALUES
+  TILES = 0..105
+
+END

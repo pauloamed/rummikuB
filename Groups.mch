@@ -65,7 +65,18 @@ rmv_group(gg) =
   END;
 
 set_groups(ggs) =
-  PRE ggs : TILES --> GAME_INDEXES
+  PRE 
+    ggs : TILES --> GAME_INDEXES &
+    !xx.(xx : ran(ggs) => 
+      xx = 0 or
+      (
+        // dom(ggs|>{xx}): todas tiles que fazem parte do grupo com id xx
+        card(dom(ggs|>{xx})) >= MIN_TILES_PER_GAME & 
+        card(dom(ggs|>{xx})) <= MAX_TILES_PER_GROUPS &
+        card(COLOR[dom(ggs|>{xx})]) = card(dom(ggs|>{xx})) & 
+        card(NUMBER[dom(ggs|>{xx}) - TILES_JOKER]) = 1 
+      )
+    ) 
   THEN
     groups := ggs
   END;
