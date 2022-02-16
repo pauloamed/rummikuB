@@ -2,7 +2,7 @@ IMPLEMENTATION RackedPlayers_i
 REFINES RackedPlayers
 
 SEES Tiles, Names
-IMPORTS Players_i
+IMPORTS Players
 
 PROMOTES set_round_players
 
@@ -22,33 +22,29 @@ INITIALISATION
 
 OPERATIONS
 
-add_racked_player(xx) = 
-  PRE xx : NAME & xx /: ran(players_i) & card(players_i) < round_players_i
-  THEN 
-    add_player(xx) || players_racks_i := players_racks_i <+ {card(players_i) + 1 |-> {}}
+add_racked_player(xx) =
+  BEGIN
+    add_player(xx);
+    players_racks_i := players_racks_i <+ {card(players_i) + 1 |-> {}}
   END;
 
 add_tiles_to_hand(xx, tt) =
-  PRE xx : ran(players_i) & tt : TILES & players_racks_i(players_i~(xx))(tt) = FALSE
-  THEN
+  BEGIN
     players_racks_i(players_i~(xx))(tt) := TRUE
   END;
 
 rmv_tiles_from_hand(xx, tt) =
-  PRE xx : ran(players_i) & tt : TILES & players_racks_i(players_i~(xx))(tt) = TRUE
-  THEN
+  BEGIN
     players_racks_i(players_i~(xx))(tt) := FALSE
   END;
 
 reset_rack(xx) = 
-  PRE xx : ran(players_i)
-  THEN
+  BEGIN
     players_racks_i(players_i~(xx)) := TILES * {FALSE}
   END;
 
 set_rack(xx, tt) =
-  PRE xx : ran(players_i) & tt : TILES --> BOOL
-  THEN
+  BEGIN
     players_racks_i(players_i~(xx)) := tt
   END
 
