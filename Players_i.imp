@@ -34,6 +34,8 @@ add_player(xx) =
   BEGIN
     players_i(idx_i) := xx;
     idx_i := idx_i + 1
-  END
+  END;
+
+xx <-- get_idx = xx := idx_i
 
 END

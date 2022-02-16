@@ -6,7 +6,7 @@ SEES Tiles, GameState, Names
 IMPORTS Table
 
 CONCRETE_VARIABLES 
-  state_i, player_turn_i
+  state_i, player_turn_i, cnt_init
   
 
 INVARIANT
@@ -15,6 +15,7 @@ INVARIANT
   /**************************************** PLAYERS **************************************************/
 
   player_turn_i : NATURAL1 & player_turn_i = player_turn_i &
+  cnt_init : NATURAL1 &
 
   // Number of players: if the game has started, there should be a valid number of players
   (state_i /= NOT_RUNNING => round_players : VALID_PLAYERS_NUMS) & 
@@ -27,7 +28,8 @@ INVARIANT
 
 INITIALISATION 
   state_i := NOT_RUNNING;
-  player_turn_i := 1
+  player_turn_i := 1;
+  cnt_init := 1
 
 
 OPERATIONS
@@ -42,7 +44,7 @@ OPERATIONS
 
   /********************************** STATE: ADDING_PLAYERS **********************************************/
 
-  add_player(xx) = // NAOM EXE EM XX
+  add_player(xx) =
     IF card(players) + 1 = round_players THEN
       BEGIN
       add_racked_player(xx); state_i:= DRAWING_INITIAL_TILES
@@ -54,16 +56,26 @@ OPERATIONS
   /********************************** STATE: DRAWING_INITIAL_TILES **********************************************/
 
   draw_initial_tiles(xx) = 
-    ANY subset_tiles 
-    WHERE subset_tiles <: in_sack & card(subset_tiles) = NUM_STARTING_TILES
-    THEN 
-      IF card(players_racks |> { {} }) = 1 THEN
-        BEGIN
-          draw_tiles(xx, subset_tiles);
-          state_i:= START_TURN
-        END
-      ELSE
-        draw_tiles(xx, subset_tiles)
+    VAR ii, curr_count, subset_tiles IN
+      ii := 0;
+      curr_count := 0;
+      subset_tiles := TILES * {FALSE};
+      WHILE ii < 105 & curr_count < NUM_STARTING_TILES DO
+        VAR sii IN
+          sii := in_sack(ii);
+          IF sii = TRUE THEN
+            subset_tiles(sii) := TRUE;
+            in_sack(sii) := FALSE;
+            curr_count := curr_count + 1;
+          END
+        END;
+        ii := ii + 1
+      INVARIANT ii : TILES
+      VARIANT 105 - ii
+      END;
+      draw_initial_tiles(xx, subset_tiles);
+      IF cnt_init = card(players) + 1 THEN
+        state_i := START_TURN
       END
     END;
 
@@ -86,16 +98,21 @@ OPERATIONS
     END;
 
   draw_tile(xx) =
-    IF card(in_sack) > 0 THEN
-      ANY yy
-      WHERE yy : in_sack
-      THEN 
-        BEGIN
-          draw_tiles(xx, {yy});
-          state_i:= FINISH_TURN
-        END
-      END
-    ELSE
+    VAR ii, tile IN
+      ii := 0;
+      tile := -1;
+      WHILE ii < 105 & tile = -1 DO
+        VAR sii IN
+          sii := in_sack(ii);
+          IF sii = TRUE THEN
+            tile := ii;
+            in_sack(sii) := FALSE;
+          END
+        END;
+        ii := ii + 1
+      INVARIANT ii : TILES
+      VARIANT 105 - ii
+      END;
       state_i:= FINISH_TURN
     END;
  
