@@ -7,10 +7,10 @@ VALUES RUNS_INDEXES = 0..13
 
 
 CONCRETE_VARIABLES
-  free_indexes_i, runs_i
+  free_indexes_r_i, runs_i
 
 INVARIANT
-  free_indexes_i : GAME_INDEXES --> BOOL & free_indexes = free_indexes_i &
+  free_indexes_r_i : GAME_INDEXES --> BOOL & free_indexes_r = free_indexes_r_i &
   runs_i : GAME_INDEXES --> (TILES --> RUNS_INDEXES) & runs = runs_i &
   
 
@@ -23,7 +23,7 @@ INVARIANT
 
 
 INITIALISATION
-  free_indexes_i := GAME_INDEXES * {TRUE};
+  free_indexes_r_i := GAME_INDEXES * {TRUE};
   VAR ii IN
     ii := 0;
     WHILE ii < MAX_GAME_INDEX DO
@@ -43,10 +43,10 @@ add_run(rr) =
       ii := 0;
       WHILE (ii <= MAX_GAME_INDEX) & next_idx = -1 DO
         VAR fii IN
-          fii := free_indexes_i(ii);
+          fii := free_indexes_r_i(ii);
           IF fii = TRUE THEN
             next_idx := ii;
-            free_indexes_i(next_idx) := FALSE
+            free_indexes_r_i(next_idx) := FALSE
           END
         END;
         ii := ii + 1
@@ -88,7 +88,7 @@ rmv_run(rr) =
     INVARIANT ii : TILES
     VARIANT (105 - ii)
     END;
-    free_indexes_i(run_id) := TRUE
+    free_indexes_r_i(run_id) := TRUE
     END
   END;
 
