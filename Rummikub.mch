@@ -100,18 +100,21 @@ OPERATIONS
   start_melding(xx) = 
     PRE state = START_TURN & xx : ran(players) & players~(xx) = player_turn
     THEN
-      set_hand(players_racks(players~(xx))) || reset_rack(xx) || set_backups(xx) ||
+    // NAO PODE CHAMAR SIMULTANEAMENTE OPERACOES DE UM MSM INCLUDE
+    // todas essas 3 operações vem de Table
+    // set_hand(players_racks(players~(xx))) || reset_rack(xx) || set_backups(xx)
+      set_backups_and_more(xx) ||
       state := MELDING
     END;
 
   remove_group_from_table_2(xx, gg) = 
-    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & gg : groups
+    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & gg : TILES --> BOOL
     THEN
       remove_group_from_table(gg)
     END;
 
   remove_run_from_table_2(xx, rr) = 
-    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & rr : runs
+    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & rr : TILES --> INTEGER & rr : ran(runs)
     THEN
       remove_run_from_table(rr)
     END;
@@ -124,8 +127,7 @@ OPERATIONS
     END;
 
   add_run_to_table_2(xx, rr) =
-    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & 
-    rr : iseq1(TILES) & ran(rr) <: in_hand
+    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & rr : TILES -->INTEGER
     THEN
       add_run_to_table(rr)
     END;
@@ -133,13 +135,13 @@ OPERATIONS
   finish_melding(xx) = 
     PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & in_hand <<: backup_rack
     THEN
-      reset_backups || reset_hand || set_rack(xx,in_hand) || state := FINISH_TURN
+      reset_move(xx) || state := FINISH_TURN
     END;
   
   reset_turn(xx) = 
     PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn
     THEN
-      recover_backups(xx) || reset_hand || state := START_TURN 
+      recover_backups(xx) || state := START_TURN 
     END;
 
   /**************************** QUERIES OPERATIONS ****************************/
