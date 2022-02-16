@@ -51,6 +51,8 @@ set_rack(xx, tt) =
   PRE xx : VALID_PLAYERS_IDS & players(xx) /= NILL & tt : TILES --> BOOL
   THEN
     players_racks(xx) := tt
-  END
+  END;
+
+xx <-- get_players_racks = xx := players_racks
 
 END

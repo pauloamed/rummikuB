@@ -47,7 +47,8 @@ rmv_from_hand(tts) =
     INVARIANT ii : TILES
     VARIANT 105 - ii
     END
-  END
+  END;
 
+xx <-- get_in_hand = xx := in_hand_i
 
 END

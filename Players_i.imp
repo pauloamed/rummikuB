@@ -36,6 +36,8 @@ add_player(xx) =
     idx_i := idx_i + 1
   END;
 
-xx <-- get_idx = xx := idx_i
+xx <-- get_idx = xx := idx_i;
+xx <-- get_players = xx := players_i;
+xx <-- get_round_players = xx := round_players
 
 END

@@ -30,6 +30,8 @@ add_to_hand(tts) =
 rmv_from_hand(tts) = 
   PRE tts : TILES --> BOOL & dom(tts |> {TRUE}) <: dom(in_hand |> {TRUE})
   THEN in_hand := in_hand <+ dom(tts |> {TRUE}) * {FALSE}
-  END
+  END;
+
+xx <-- get_in_hand = xx := in_hand
 
 END

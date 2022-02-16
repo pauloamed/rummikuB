@@ -30,6 +30,8 @@ rmv_from_sack(tt) =
     INVARIANT ii : TILES
     VARIANT 105 - ii
     END
-  END
+  END;
+
+xx <-- get_in_sack = xx := in_sack_i
 
 END

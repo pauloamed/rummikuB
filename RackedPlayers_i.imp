@@ -74,6 +74,8 @@ reset_rack(xx) =
   players_racks_i(xx) := TILES * {FALSE};
 
 set_rack(xx, tt) =
-    players_racks_i(xx) := tt
+    players_racks_i(xx) := tt;
+
+xx <-- get_players_racks = xx := players_racks_i
 
 END

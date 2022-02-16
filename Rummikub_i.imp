@@ -45,27 +45,34 @@ OPERATIONS
   /********************************** STATE: ADDING_PLAYERS **********************************************/
 
   add_player(xx) =
-    IF card(players) + 1 = round_players THEN
-      BEGIN
-      add_racked_player(xx); state_i:= DRAWING_INITIAL_TILES
+		VAR players_aux, round_players_aux IN
+			players_aux <-- get_players;
+			round_players_aux <-- get_round_players;
+      IF card(players_aux) + 1 = round_players_aux THEN
+        BEGIN
+        	add_racked_player(xx);
+					state_i:= DRAWING_INITIAL_TILES
+        END
+      ELSE
+        add_racked_player(xx)
       END
-    ELSE
-      add_racked_player(xx)
-    END;
+		END;
 
   /********************************** STATE: DRAWING_INITIAL_TILES **********************************************/
 
   draw_initial_tiles(xx) = 
-    VAR ii, curr_count, subset_tiles IN
+    VAR ii, curr_count, subset_tiles, in_sack_aux, players_aux IN
       ii := 0;
       curr_count := 0;
       subset_tiles := TILES * {FALSE};
+			in_sack_aux <-- get_in_sack;	
+			players_aux <-- get_players;	
       WHILE ii < 105 & curr_count < NUM_STARTING_TILES DO
         VAR sii IN
-          sii := in_sack(ii);
+          sii := in_sack_aux(ii);
           IF sii = TRUE THEN
             subset_tiles(sii) := TRUE;
-            in_sack(sii) := FALSE;
+            in_sack_aux(sii) := FALSE;
             curr_count := curr_count + 1;
           END
         END;
@@ -74,7 +81,7 @@ OPERATIONS
       VARIANT 105 - ii
       END;
       draw_initial_tiles(xx, subset_tiles);
-      IF cnt_init = card(players) + 1 THEN
+      IF cnt_init = card(players_aux) + 1 THEN
         state_i := START_TURN
       END
     END;
@@ -82,31 +89,35 @@ OPERATIONS
   /********************************** STATE: PLAYING **********************************************/
      
   next_turn(xx) =
-    IF players_racks(xx) = {} THEN state_i:= FINISHED
-    // select: if theres a tile in the sack
-    // if can make a move
-    ELSIF player_turn_i = round_players THEN
-      BEGIN
-        player_turn_i := 1;
+		VAR players_racks_aux, round_players_aux IN
+			players_racks_aux <-- get_players_racks;
+			round_players_aux <-- get_round_players;
+      IF players_racks_aux(xx) = {} THEN state_i:= FINISHED
+      // select: if theres a tile in the sack
+      // if can make a move
+      ELSIF player_turn_i = round_players_aux THEN
+        BEGIN
+          player_turn_i := 1;
+          state_i:= START_TURN
+        END
+      ELSE
+        BEGIN
+        player_turn_i := player_turn_i + 1;
         state_i:= START_TURN
-      END
-    ELSE
-      BEGIN
-      player_turn_i := player_turn_i + 1;
-      state_i:= START_TURN
-      END
-    END;
+        END
+      END;
 
   draw_tile(xx) =
-    VAR ii, tile IN
+    VAR ii, tile, in_sack_aux IN
       ii := 0;
       tile := -1;
+			in_sack_aux <-- get_in_sack;	
       WHILE ii < 105 & tile = -1 DO
         VAR sii IN
-          sii := in_sack(ii);
+          sii := in_sack_aux(ii);
           IF sii = TRUE THEN
             tile := ii;
-            in_sack(sii) := FALSE;
+            in_sack_aux(sii) := FALSE;
           END
         END;
         ii := ii + 1

@@ -37,6 +37,8 @@ add_player(xx) =
   THEN players := players <+ {idx |-> xx} || idx := idx + 1
   END;
 
-xx <-- get_idx = xx := idx
+xx <-- get_idx = xx := idx;
+xx <-- get_players = xx := players;
+xx <-- get_round_players = xx := round_players
 
 END
