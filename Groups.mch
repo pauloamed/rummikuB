@@ -81,6 +81,7 @@ set_groups(ggs) =
     groups := ggs
   END;
 
-clear_groups = groups := TILES * {0}
+clear_groups = groups := TILES * {0};
+xx <-- get_groups = xx := groups
 
 END

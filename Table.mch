@@ -13,7 +13,8 @@ PROPERTIES
 PROMOTES 
   add_group, rmv_group, 
   add_run, rmv_run,
-  add_racked_player, set_round_players
+  add_racked_player, set_round_players,
+  get_in_sack, get_players, get_players_racks, get_round_players, get_idx
 
 VARIABLES
   backup_runs, backup_groups, backup_rack

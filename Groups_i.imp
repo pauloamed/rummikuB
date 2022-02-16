@@ -88,5 +88,6 @@ rmv_group(gg) =
   END;
 
 set_groups(ggs) = groups_i := ggs;
-clear_groups = groups_i := TILES * {0}
+clear_groups = groups_i := TILES * {0};
+xx <-- get_groups = xx := groups_i
 END

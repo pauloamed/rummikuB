@@ -3,7 +3,7 @@ MACHINE RackedPlayers
 SEES Tiles, Names
 INCLUDES Players
 
-PROMOTES set_round_players
+PROMOTES set_round_players, get_players, get_round_players, get_idx
 
 CONSTANTS 
   NUM_STARTING_TILES, MAX_PLAYER_ID
@@ -53,6 +53,8 @@ set_rack(xx, tt) =
     players_racks(xx) := tt
   END;
 
+//xx <-- get_players_2 = xx := players;
+//xx <-- get_idx_2 = xx := idx;
 xx <-- get_players_racks = xx := players_racks
 
 END

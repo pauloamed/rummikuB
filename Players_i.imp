@@ -3,7 +3,7 @@ REFINES Players
 SEES Names
 
 VALUES
-  VALID_PLAYERS_NUMS = 2..5;
+  VALID_PLAYERS_NUMS = 0..5;
   VALID_PLAYERS_IDS = 0..5;
   VALID_ROUNDS = 0..4
 
@@ -38,6 +38,6 @@ add_player(xx) =
 
 xx <-- get_idx = xx := idx_i;
 xx <-- get_players = xx := players_i;
-xx <-- get_round_players = xx := round_players
+xx <-- get_round_players = xx := round_players_i
 
 END

@@ -1,0 +1,157 @@
+IMPLEMENTATION Table_i
+REFINES Table
+
+SEES Tiles, Names, TileGames
+
+IMPORTS RackedPlayers, Sack, Groups, Runs, Hand
+
+
+VALUES
+  bool2int = {FALSE |-> 0, TRUE |-> 1}
+
+PROMOTES 
+  add_group, rmv_group, 
+  add_run, rmv_run,
+  add_racked_player, set_round_players,
+  get_in_sack, get_players, get_players_racks, get_round_players, get_idx
+
+CONCRETE_VARIABLES
+  backup_runs_i, backup_groups_i, backup_rack_i
+
+INVARIANT
+
+  !xx.(xx: TILES =>
+    (SIGMA yy . (yy : ran(players_racks) | bool2int(yy(xx)))) + 
+    (SIGMA yy . (yy : ran(runs) | bool2int(bool(yy(xx) /= -1)))) + 
+    bool2int(bool(groups(xx) /= 0)) +
+    bool2int(in_hand(xx)) +
+    bool2int(in_sack(xx)) 
+    = 1
+  ) & 
+
+  /********************************** BACKUPS ************************************************/
+
+  backup_rack_i : TILES --> BOOL & backup_rack_i = backup_rack &
+  backup_groups_i : TILES --> GAME_INDEXES & backup_groups_i = backup_groups &
+  backup_runs_i : GAME_INDEXES --> (TILES --> RUNS_INDEXES) & backup_runs = backup_runs_i
+
+INITIALISATION
+  backup_rack_i := TILES * {FALSE};
+  backup_groups_i := TILES * {0};
+  VAR ii IN
+    ii := 0;
+    WHILE ii < MAX_GAME_INDEX DO
+      backup_runs_i(ii) := TILES * {0};
+      ii := ii + 1
+    INVARIANT ii < MAX_GAME_INDEX
+    VARIANT MAX_GAME_INDEX - ii
+    END
+  END
+
+OPERATIONS
+
+draw_tiles(xx, tts) = 
+  BEGIN
+    add_tiles_to_hand(xx, tts);
+    rmv_from_sack(tts)
+  END;
+
+// antigo reset_backup
+reset_move(xx) =
+  BEGIN
+    backup_rack_i := TILES * {FALSE};
+    backup_groups_i := TILES * {0};
+    VAR ii IN
+      ii := 0;
+      WHILE ii < MAX_GAME_INDEX DO
+        backup_runs_i(ii) := TILES * {0};
+        ii := ii + 1
+      INVARIANT ii < MAX_GAME_INDEX
+      VARIANT MAX_GAME_INDEX - ii
+      END
+    END;
+    reset_hand;
+    VAR in_hand_aux IN
+      in_hand_aux <-- get_in_hand;
+      set_rack(xx, in_hand_aux)
+    END
+  END;
+  
+
+remove_group_from_table(gg) = 
+  BEGIN
+    rmv_group(gg);
+    add_to_hand(gg)
+  END;
+
+remove_run_from_table(rr) = 
+  BEGIN
+    rmv_run(rr);
+    VAR ii, bool_run IN 
+      ii := 0;
+      bool_run := TILES * {FALSE};
+      WHILE ii < 105 DO
+        VAR rri IN
+          rri := rr(ii);
+          IF rri /= -1 THEN
+            bool_run(ii) := TRUE
+          END
+        END;
+        ii := ii + 1
+      INVARIANT ii : TILES
+      VARIANT 105 - ii
+      END;
+      add_to_hand(bool_run)
+    END
+  END;
+
+add_group_to_table(gg) =
+  BEGIN
+    add_group(gg);
+    rmv_from_hand(gg)
+  END;
+
+add_run_to_table(rr) =
+  BEGIN
+    add_run(rr);
+    VAR ii, bool_run IN 
+      ii := 0;
+      bool_run := TILES * {FALSE};
+      WHILE ii < 105 DO
+        VAR rri IN
+          rri := rr(ii);
+          IF rri /= -1 THEN
+            bool_run(ii) := TRUE
+          END
+        END;
+        ii := ii + 1
+      INVARIANT ii : TILES
+      VARIANT 105 - ii
+      END;
+      rmv_from_hand(bool_run)
+    END
+  END;
+
+set_backups_and_more(xx) =
+  BEGIN
+    VAR runs_aux, groups_aux, players_racks_aux IN
+      runs_aux <-- get_runs;
+      groups_aux <-- get_groups;
+      players_racks_aux <-- get_players_racks;
+      backup_runs_i := runs_aux;
+      backup_groups_i := groups_aux;
+      backup_rack_i := players_racks_aux(xx);
+      set_hand(players_racks_aux(xx));
+      reset_rack(xx)
+    END
+  END;
+  
+recover_backups(xx) =
+  BEGIN
+    set_runs(backup_runs_i);
+    set_groups(backup_groups_i);
+    set_rack(xx, backup_rack_i);
+    reset_hand
+  END
+
+END

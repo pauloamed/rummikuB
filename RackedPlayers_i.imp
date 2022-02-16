@@ -4,7 +4,7 @@ REFINES RackedPlayers
 SEES Tiles, Names
 IMPORTS Players
 
-PROMOTES set_round_players
+PROMOTES set_round_players, get_players, get_round_players, get_idx
 
 VALUES
   NUM_STARTING_TILES = 14;
@@ -77,5 +77,7 @@ set_rack(xx, tt) =
     players_racks_i(xx) := tt;
 
 xx <-- get_players_racks = xx := players_racks_i
+//xx <-- get_players_2 = xx <-- get_players;
+//xx <-- get_idx_2 = xx <-- get_idx
 
 END

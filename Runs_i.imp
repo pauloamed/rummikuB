@@ -103,6 +103,8 @@ clear_runs =
     INVARIANT ii < MAX_GAME_INDEX
     VARIANT MAX_GAME_INDEX - ii
     END
-  END
+  END;
+
+xx <-- get_runs = xx := runs_i
 
 END

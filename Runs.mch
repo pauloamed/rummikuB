@@ -57,6 +57,7 @@ set_runs(rrs) =
     runs := rrs
   END;
 
-clear_runs = runs := (%ii.(ii:GAME_INDEXES| TILES * {0}))
+clear_runs = runs := (%ii.(ii:GAME_INDEXES| TILES * {0}));
+xx <-- get_runs = xx := runs
 
 END
