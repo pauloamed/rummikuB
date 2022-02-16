@@ -41,7 +41,7 @@ OPERATIONS
 
   /********************************** STATE: ADDING_PLAYERS **********************************************/
 
-  add_player(xx) = 
+  add_player(xx) = // NAOM EXE EM XX
     PRE state = ADDING_PLAYERS & xx : NAME & xx /: ran(players) & card(players) < round_players
     THEN 
       IF card(players) + 1 = round_players THEN
@@ -54,7 +54,7 @@ OPERATIONS
   /********************************** STATE: DRAWING_INITIAL_TILES **********************************************/
 
   draw_initial_tiles(xx) = 
-    PRE state = DRAWING_INITIAL_TILES & xx : ran(players) & players_racks(players~(xx)) = {}
+    PRE state = DRAWING_INITIAL_TILES & xx : VALID_PLAYERS_IDS & players(xx) /= NILL & players_racks(xx) = {}
     THEN
       ANY subset_tiles 
       WHERE subset_tiles <: in_sack & card(subset_tiles) = NUM_STARTING_TILES
@@ -70,10 +70,10 @@ OPERATIONS
   /********************************** STATE: PLAYING **********************************************/
      
   next_turn(xx) = 
-    PRE state = FINISH_TURN & xx : ran(players) & players~(xx) = player_turn
+    PRE state = FINISH_TURN & xx : VALID_PLAYERS_IDS & players(xx) /= NILL & xx = player_turn
     THEN
       // first checks if there is a winner
-      IF players_racks(players~(xx)) = {} THEN state := FINISHED
+      IF players_racks(xx) = {} THEN state := FINISHED
       // select: if theres a tile in the sack
       // if can make a move
       ELSIF player_turn = round_players THEN
@@ -84,7 +84,7 @@ OPERATIONS
     END;
 
   draw_tile(xx) =
-    PRE state = START_TURN & xx : ran(players) & players~(xx) = player_turn
+    PRE state = START_TURN & xx : VALID_PLAYERS_IDS & players(xx) /= NILL & xx = player_turn
     THEN
       IF card(in_sack) > 0 THEN
         ANY yy
@@ -98,7 +98,7 @@ OPERATIONS
     END;
  
   start_melding(xx) = 
-    PRE state = START_TURN & xx : ran(players) & players~(xx) = player_turn
+    PRE state = START_TURN & xx : VALID_PLAYERS_IDS & players(xx) /= NILL & xx = player_turn
     THEN
     // NAO PODE CHAMAR SIMULTANEAMENTE OPERACOES DE UM MSM INCLUDE
     // todas essas 3 operações vem de Table
@@ -108,49 +108,56 @@ OPERATIONS
     END;
 
   remove_group_from_table_2(xx, gg) = 
-    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & gg : TILES --> BOOL
+    PRE state = MELDING & xx : VALID_PLAYERS_IDS & players(xx) /= NILL & xx = player_turn & gg : TILES --> BOOL
     THEN
       remove_group_from_table(gg)
     END;
 
   remove_run_from_table_2(xx, rr) = 
-    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & rr : TILES --> INTEGER & rr : ran(runs)
+    PRE state = MELDING & xx : VALID_PLAYERS_IDS & players(xx) /= NILL & xx = player_turn &
+    rr : TILES --> RUNS_INDEXES &
+    rr : ran(runs)
     THEN
       remove_run_from_table(rr)
     END;
 
   add_group_to_table_2(xx, gg) =
-    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn &
-    gg <: in_hand
+    PRE state = MELDING & xx : VALID_PLAYERS_IDS & players(xx) /= NILL & xx = player_turn &
+    gg : TILES --> BOOL &
+    dom(gg |> {TRUE}) <: dom(in_hand |> {TRUE})
     THEN
       add_group_to_table(gg)
     END;
 
   add_run_to_table_2(xx, rr) =
-    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & rr : TILES -->INTEGER
+    PRE state = MELDING & xx : VALID_PLAYERS_IDS & players(xx) /= NILL & xx = player_turn & rr : TILES --> RUNS_INDEXES &
+    dom(rr |>> {-1}) <: dom(in_hand |> {TRUE})
     THEN
       add_run_to_table(rr)
     END;
 
   finish_melding(xx) = 
-    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn & in_hand <<: backup_rack
+    PRE state = MELDING & xx : VALID_PLAYERS_IDS & players(xx) /= NILL & xx = player_turn & 
+    dom(in_hand |> {TRUE}) <<: dom(backup_rack |> {TRUE})
     THEN
       reset_move(xx) || state := FINISH_TURN
     END;
   
   reset_turn(xx) = 
-    PRE state = MELDING & xx : ran(players) & players~(xx) = player_turn
+    PRE state = MELDING & xx : VALID_PLAYERS_IDS & players(xx) /= NILL & xx = player_turn
     THEN
       recover_backups(xx) || state := START_TURN 
-    END;
-
+    END
+    
   /**************************** QUERIES OPERATIONS ****************************/
 
+/*
   yy <-- winner =
     IF state = FINISHED THEN 
-      yy := {xx | xx : ran(players) & players_racks(players~(xx)) = {} }
+      yy := {xx | xx : VALID_PLAYERS_IDS & players(xx) /= NILL & players_racks(xx) = {} }
     ELSE
       yy := {}
     END
+*/
     
 END

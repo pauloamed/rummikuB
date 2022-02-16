@@ -6,16 +6,16 @@ INCLUDES Players
 PROMOTES set_round_players
 
 CONSTANTS 
-  NUM_STARTING_TILES
+  NUM_STARTING_TILES, MAX_PLAYER_ID
 
 PROPERTIES
-  NUM_STARTING_TILES = 14
+  NUM_STARTING_TILES = 14 & MAX_PLAYER_ID = 5
 
 VARIABLES
   players_racks
 
 INVARIANT
-  players_racks : VALID_PLAYERS_IDS +-> (TILES --> BOOL) &
+  players_racks : VALID_PLAYERS_IDS --> (TILES --> BOOL) &
   dom(players_racks) = dom(players)
 
 INITIALISATION
@@ -30,27 +30,27 @@ add_racked_player(xx) =
   END;
 
 add_tiles_to_hand(xx, tts) =
-  PRE xx : NAME & xx : ran(players) & tts : TILES --> BOOL & players_racks(players~(xx))[dom(tts |> {TRUE})] = {FALSE}
+  PRE xx : VALID_PLAYERS_IDS & players(xx) /= NILL & tts : TILES --> BOOL & players_racks(xx)[dom(tts |> {TRUE})] = {FALSE}
   THEN
-    players_racks(players~(xx)) := players_racks(players~(xx)) <+ dom(tts |> {TRUE}) * {TRUE}
+    players_racks(xx) := players_racks(xx) <+ dom(tts |> {TRUE}) * {TRUE}
   END;
 
 rmv_tiles_from_hand(xx, tts) =
-  PRE xx : NAME & xx : ran(players) & tts : TILES --> BOOL & players_racks(players~(xx))[dom(tts |> {TRUE})] = {TRUE}
+  PRE xx : VALID_PLAYERS_IDS & players(xx) /= NILL & tts : TILES --> BOOL & players_racks(xx)[dom(tts |> {TRUE})] = {TRUE}
   THEN
-    players_racks(players~(xx)) := players_racks(players~(xx)) <+ dom(tts |> {TRUE}) * {FALSE}
+    players_racks(xx) := players_racks(xx) <+ dom(tts |> {TRUE}) * {FALSE}
   END;
 
 reset_rack(xx) = 
-  PRE xx : NAME & xx : ran(players)
+  PRE xx : VALID_PLAYERS_IDS & players(xx) /= NILL
   THEN
-    players_racks(players~(xx)) := TILES * {FALSE}
+    players_racks(xx) := TILES * {FALSE}
   END;
 
 set_rack(xx, tt) =
-  PRE xx : NAME & xx : ran(players) & tt : TILES --> BOOL
+  PRE xx : VALID_PLAYERS_IDS & players(xx) /= NILL & tt : TILES --> BOOL
   THEN
-    players_racks(players~(xx)) := tt
+    players_racks(xx) := tt
   END
 
 END

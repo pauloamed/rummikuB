@@ -7,45 +7,73 @@ IMPORTS Players
 PROMOTES set_round_players
 
 VALUES
-  NUM_STARTING_TILES = 14
+  NUM_STARTING_TILES = 14;
+  MAX_PLAYER_ID = 5
 
 CONCRETE_VARIABLES
   players_racks_i
 
 INVARIANT
-  players_racks_i : VALID_PLAYERS_IDS +-> (TILES --> BOOL) &
+  players_racks_i : VALID_PLAYERS_IDS --> (TILES --> BOOL) &
   players_racks_i = players_racks &
-  dom(players_racks_i) = dom(players_i)
+  dom(players_racks_i) = dom(players)
 
 INITIALISATION
-  players_racks_i := {}
+  VAR ii IN
+    ii := 0;
+    WHILE ii < MAX_PLAYER_ID DO
+      players_racks_i(ii) := TILES * {FALSE};
+      ii := ii + 1
+    INVARIANT ii < MAX_PLAYER_ID
+    VARIANT MAX_PLAYER_ID - ii
+    END
+  END
 
 OPERATIONS
 
-add_racked_player(xx) =
-  BEGIN
+add_racked_player(xx) = 
+  VAR iidx IN
+    iidx <-- get_idx;
     add_player(xx);
-    players_racks_i := players_racks_i <+ {card(players_i) + 1 |-> {}}
+    players_racks_i(iidx) := TILES * {FALSE}
   END;
 
-add_tiles_to_hand(xx, tt) =
-  BEGIN
-    players_racks_i(players_i~(xx))(tt) := TRUE
+add_tiles_to_hand(xx, tts) =
+  VAR ii IN
+    ii := 0;
+    WHILE ii < 105 DO
+      VAR ttsii IN
+        ttsii := tts(ii);
+        IF ttsii = TRUE THEN
+          players_racks_i(xx)(ii) := TRUE
+        END
+      END;
+      ii := ii + 1
+    INVARIANT ii : TILES
+    VARIANT (105 - ii)
+    END
   END;
-
-rmv_tiles_from_hand(xx, tt) =
-  BEGIN
-    players_racks_i(players_i~(xx))(tt) := FALSE
+  
+rmv_tiles_from_hand(xx, tts) =
+  VAR ii IN
+    ii := 0;
+    WHILE ii < 105 DO
+      VAR ttsii IN
+        ttsii := tts(ii);
+        IF ttsii = TRUE THEN
+          players_racks_i(xx)(ii) := FALSE
+        END
+      END;
+      ii := ii + 1
+    INVARIANT ii : TILES
+    VARIANT (105 - ii)
+    END
   END;
 
 reset_rack(xx) = 
-  BEGIN
-    players_racks_i(players_i~(xx)) := TILES * {FALSE}
-  END;
+  players_racks_i(xx) := TILES * {FALSE};
 
 set_rack(xx, tt) =
-  BEGIN
-    players_racks_i(players_i~(xx)) := tt
-  END
+    players_racks_i(xx) := tt
 
 END

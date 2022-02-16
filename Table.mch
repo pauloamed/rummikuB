@@ -41,14 +41,14 @@ INITIALISATION
 OPERATIONS
 
 draw_tiles(xx, tts) = 
-  PRE xx : NAME & xx : ran(players) & tts : TILES --> BOOL
+  PRE xx : VALID_PLAYERS_IDS & players(xx) /= NILL & tts : TILES --> BOOL
   THEN
     add_tiles_to_hand(xx, tts) || rmv_from_sack(tts)
   END;
 
 // antigo reset_backup
 reset_move(xx) =
-  PRE xx : NAME & xx : ran(players)
+  PRE xx : VALID_PLAYERS_IDS & players(xx) /= NILL
   THEN
     backup_runs := {} || backup_groups := {} || backup_rack := {}/*Adicionado->*/ || reset_hand || set_rack(xx,in_hand)
   END;
@@ -61,7 +61,7 @@ remove_group_from_table(gg) =
   END;
 
 remove_run_from_table(rr) = 
-  PRE rr : TILES --> -1..200 & rr : ran(runs)
+  PRE rr : TILES --> RUNS_INDEXES & rr : ran(runs)
   THEN
     rmv_run(rr) || add_to_hand(((TILES * {FALSE}) <+ dom(rr |>> {-1}) * {TRUE}))
   END;
@@ -73,23 +73,20 @@ add_group_to_table(gg) =
   END;
 
 add_run_to_table(rr) =
-  PRE rr : TILES --> -1..200 & dom(rr |>> {-1}) <: dom(in_hand |> {TRUE})
+  PRE rr : TILES --> RUNS_INDEXES & dom(rr |>> {-1}) <: dom(in_hand |> {TRUE})
   THEN
     add_run(rr) || rmv_from_hand((TILES * {FALSE}) <+ dom(rr |>> {-1}) * {TRUE})
   END;
 
 set_backups_and_more(xx) =
-  PRE xx : NAME
+  PRE xx : VALID_PLAYERS_IDS & players(xx) /= NILL
   THEN
-    backup_runs := runs || backup_groups := groups || backup_rack := players_racks(players~(xx)) ||
-    set_hand(players_racks(players~(xx))) || reset_rack(xx)
+    backup_runs := runs || backup_groups := groups || backup_rack := players_racks(xx) ||
+    set_hand(players_racks(xx)) || reset_rack(xx)
   END;
   
 recover_backups(xx) =
-  PRE xx : NAME /*&
-      backup_runs : POW(iseq(TILES)) &
-      backup_groups : FIN(backup_groups) &
-      backup_rack <: TILES*/
+  PRE xx : VALID_PLAYERS_IDS & players(xx) /= NILL
   THEN
     set_runs(backup_runs) || set_groups(backup_groups) || set_rack(xx, backup_rack) || reset_hand
   END

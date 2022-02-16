@@ -45,7 +45,7 @@ add_group(gg) =
           END
         END;
         ii := ii + 1
-      INVARIANT ii : TILES
+      INVARIANT ii : GAME_INDEXES
       VARIANT (MAX_GAME_INDEX - ii)
       END
     END;

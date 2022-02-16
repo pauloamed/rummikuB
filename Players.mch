@@ -11,10 +11,11 @@ PROPERTIES
   VALID_ROUNDS = 0..4
 
 VARIABLES
-  round_players, players
+  round_players, players, idx
 
 INVARIANT
   round_players : VALID_ROUNDS &
+  idx : 0..6 &
 
   // Players: a function of names (but partial injective and indexed by naturals)
   players : VALID_PLAYERS_IDS --> NAME & players : FIN(players) &
@@ -22,7 +23,7 @@ INVARIANT
   card(players |>> {NILL}) < round_players
 
 INITIALISATION
-  players := VALID_PLAYERS_IDS * {NILL} || round_players := MAXINT
+  players := VALID_PLAYERS_IDS * {NILL} || round_players := MAXINT || idx := 0
 
 OPERATIONS
 
@@ -33,7 +34,10 @@ set_round_players(nn) =
 
 add_player(xx) = 
   PRE xx : NAME & xx /: ran(players) & card(players) < round_players
-  THEN players := players <+ {card(players) + 1 |-> xx}
-  END
+  THEN players := players <+ {idx |-> xx} || idx := idx + 1
+  END;
+
+xx <-- get_players = xx := players;
+xx <-- get_idx = xx := idx
 
 END

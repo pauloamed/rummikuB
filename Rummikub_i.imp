@@ -1,0 +1,138 @@
+IMPLEMENTATION Rummikub_i
+REFINES Rummikub
+
+SEES Tiles, GameState, Names
+
+IMPORTS Table
+
+CONCRETE_VARIABLES 
+  state_i, player_turn_i
+  
+
+INVARIANT
+  state_i : GAME_STATE & state_i = state_i&
+
+  /**************************************** PLAYERS **************************************************/
+
+  player_turn_i : NATURAL1 & player_turn_i = player_turn_i &
+
+  // Number of players: if the game has started, there should be a valid number of players
+  (state_i /= NOT_RUNNING => round_players : VALID_PLAYERS_NUMS) & 
+
+  // Player turn
+  (state_i /= NOT_RUNNING => (player_turn_i <= round_players)) &
+
+  (state_i /= MELDING => backup_groups <: groups) &
+  (state_i /= MELDING => backup_runs <: runs)
+
+INITIALISATION 
+  state_i := NOT_RUNNING;
+  player_turn_i := 1
+
+
+OPERATIONS
+
+  /********************************** STATE: NOT_RUNNING ************************************************/
+
+  start_game(nn) =
+    BEGIN
+    set_round_players(nn);
+    state_i:= ADDING_PLAYERS
+    END;
+
+  /********************************** STATE: ADDING_PLAYERS **********************************************/
+
+  add_player(xx) = // NAOM EXE EM XX
+    IF card(players) + 1 = round_players THEN
+      BEGIN
+      add_racked_player(xx); state_i:= DRAWING_INITIAL_TILES
+      END
+    ELSE
+      add_racked_player(xx)
+    END;
+
+  /********************************** STATE: DRAWING_INITIAL_TILES **********************************************/
+
+  draw_initial_tiles(xx) = 
+    ANY subset_tiles 
+    WHERE subset_tiles <: in_sack & card(subset_tiles) = NUM_STARTING_TILES
+    THEN 
+      IF card(players_racks |> { {} }) = 1 THEN
+        BEGIN
+          draw_tiles(xx, subset_tiles);
+          state_i:= START_TURN
+        END
+      ELSE
+        draw_tiles(xx, subset_tiles)
+      END
+    END;
+
+  /********************************** STATE: PLAYING **********************************************/
+     
+  next_turn(xx) =
+    IF players_racks(xx) = {} THEN state_i:= FINISHED
+    // select: if theres a tile in the sack
+    // if can make a move
+    ELSIF player_turn_i = round_players THEN
+      BEGIN
+        player_turn_i := 1;
+        state_i:= START_TURN
+      END
+    ELSE
+      BEGIN
+      player_turn_i := player_turn_i + 1;
+      state_i:= START_TURN
+      END
+    END;
+
+  draw_tile(xx) =
+    IF card(in_sack) > 0 THEN
+      ANY yy
+      WHERE yy : in_sack
+      THEN 
+        BEGIN
+          draw_tiles(xx, {yy});
+          state_i:= FINISH_TURN
+        END
+      END
+    ELSE
+      state_i:= FINISH_TURN
+    END;
+ 
+  start_melding(xx) = 
+    BEGIN
+    set_backups_and_more(xx);
+    state_i:= MELDING
+    END;
+
+
+  remove_group_from_table_2(xx, gg) = remove_group_from_table(gg);
+  remove_run_from_table_2(xx, rr) = remove_run_from_table(rr);
+  add_group_to_table_2(xx, gg) = add_group_to_table(gg);
+  add_run_to_table_2(xx, rr) = add_run_to_table(rr);
+
+
+  finish_melding(xx) = 
+  BEGIN
+    reset_move(xx);
+    state_i:= FINISH_TURN
+  END;
+  
+  reset_turn(xx) = 
+  BEGIN
+    recover_backups(xx);
+    state_i:= START_TURN 
+  END
+    
+  /**************************** QUERIES OPERATIONS ****************************/
+
+/*
+  yy <-- winner =
+    IF state_i= FINISHED THEN 
+      yy := {xx | xx : VALID_PLAYERS_IDS & players(xx) /= NILL & players_racks(xx) = {} }
+    ELSE
+      yy := {}
+    END
+*/
+    
+END
