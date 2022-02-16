@@ -7,10 +7,10 @@ VALUES
   MAX_TILES_PER_GROUPS = 4
 
 CONCRETE_VARIABLES
-  free_indexes_i, groups_i
+  free_indexes_g_i, groups_i
 
 INVARIANT
-  free_indexes_i : GAME_INDEXES --> BOOL & free_indexes = free_indexes_i &
+  free_indexes_g_i : GAME_INDEXES --> BOOL & free_indexes_g = free_indexes_g_i &
 
   groups_i : TILES --> GAME_INDEXES & groups = groups_i &
   !xx.(xx : ran(groups_i) => 
@@ -26,7 +26,7 @@ INVARIANT
 
 INITIALISATION
   groups_i := TILES * {0};
-  free_indexes_i := GAME_INDEXES * {TRUE}
+  free_indexes_g_i := GAME_INDEXES * {TRUE}
 
 OPERATIONS
 
@@ -38,10 +38,10 @@ add_group(gg) =
       ii := 0;
       WHILE (ii <= MAX_GAME_INDEX) & next_idx = -1 DO
         VAR fii IN
-          fii := free_indexes_i(ii);
+          fii := free_indexes_g_i(ii);
           IF fii = TRUE THEN
             next_idx := ii;
-            free_indexes_i(next_idx) := FALSE
+            free_indexes_g_i(next_idx) := FALSE
           END
         END;
         ii := ii + 1
@@ -83,7 +83,7 @@ rmv_group(gg) =
     INVARIANT ii : TILES
     VARIANT (105 - ii)
     END;
-    free_indexes_i(group_id) := TRUE
+    free_indexes_g_i(group_id) := TRUE
     END
   END;
 
