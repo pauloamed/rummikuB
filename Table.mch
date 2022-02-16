@@ -1,8 +1,14 @@
 MACHINE Table
 
-SEES Tiles, Names
+SEES Tiles, Names, TileGames
 
 INCLUDES RackedPlayers, Sack, Groups, Runs, Hand
+
+CONSTANTS
+  bool2int
+
+PROPERTIES
+  bool2int : BOOL --> 0..1 & bool2int(TRUE) = 1 & bool2int(FALSE) = 0
 
 PROMOTES 
   add_group, rmv_group, 
@@ -15,27 +21,21 @@ VARIABLES
   backup_runs, backup_groups, backup_rack
 
 INVARIANT
-  UNION(xx).(xx :                                               // the union between
-    (ran(players_racks) \/                                      // player racks
-    {aa | aa : POW(TILES) & #bb.(bb : runs & ran(bb) = aa)} \/  // runs
-    groups \/                                                   // groups
-    {in_sack, in_hand}                                          // in_sack and in_hand
-  ) | xx) = TILES &                                             // comprises all tiles
 
-  !xx.(xx: TILES =>                                               // each tile
-    (card({yy | yy : 
-      (ran(players_racks) \/                                      // either belongs to a player rack
-      {aa | aa : POW(TILES) & #bb.(bb : runs & ran(bb) = aa)} \/  // or to a run
-      groups \/                                                   // or to a group
-      {in_sack, in_hand}) & xx : yy}                              // or into sack or to in_hand
-    ) = 1)
+  !xx.(xx: TILES =>
+    (SIGMA yy . (yy : ran(players_racks) | bool2int(yy(xx)))) + 
+    (SIGMA yy . (yy : ran(runs) | bool2int(bool(yy(xx) /= -1)))) + 
+    bool2int(bool(groups(xx) /= 0)) +
+    bool2int(in_hand(xx)) +
+    bool2int(in_sack(xx)) 
+    = 1
   ) & 
 
   /********************************** BACKUPS ************************************************/
 
-  backup_rack <: TILES &
-  backup_groups <: POW(TILES) & 
-  backup_runs : POW(iseq1(TILES)) & backup_runs : FIN(backup_runs)
+  backup_rack : TILES --> BOOL &
+  backup_groups : TILES --> GAME_INDEXES & 
+  backup_runs : GAME_INDEXES --> (TILES --> RUNS_INDEXES)
 
 INITIALISATION
   backup_groups := {} || backup_runs := {} || backup_rack := {}
@@ -43,36 +43,40 @@ INITIALISATION
 OPERATIONS
 
 draw_tiles(xx, tts) = 
-  PRE xx : ran(players)
+  PRE xx : ran(players) & tts : TILES --> BOOL
   THEN
     add_tiles_to_hand(xx, tts) || rmv_from_sack(tts)
   END;
 
 reset_backups =
-  backup_runs := {} || backup_groups := {} || backup_rack := {};
+  PRE 1=1
+  THEN
+    backup_runs := {} || backup_groups := {} || backup_rack := {}
+  END;
+  
 
 remove_group_from_table(gg) = 
-  PRE gg : groups
+  PRE gg : TILES --> BOOL
   THEN
     rmv_group(gg) || add_to_hand(gg)
   END;
 
 remove_run_from_table(rr) = 
-  PRE rr : runs
+  PRE rr : TILES --> INTEGER & rr : ran(runs)
   THEN
-    rmv_run(rr) || add_to_hand(ran(rr))
+    rmv_run(rr) || add_to_hand(((TILES * {FALSE}) <+ dom(rr |>> {-1}) * {TRUE}))
   END;
 
 add_group_to_table(gg) =
-  PRE gg <: in_hand
+  PRE gg : TILES --> BOOL & dom(gg |> {TRUE}) <: dom(in_hand |> {TRUE})
   THEN
     add_group(gg) || rmv_from_hand(gg)
   END;
 
 add_run_to_table(rr) =
-  PRE rr : iseq1(TILES) & ran(rr) <: in_hand
+  PRE rr : TILES -->INTEGER & dom(rr |>> {-1}) <: dom(in_hand |> {TRUE})
   THEN
-    add_run(rr) || rmv_from_hand(ran(rr))
+    add_run(rr) || rmv_from_hand((TILES * {FALSE}) <+ dom(rr |>> {-1}) * {TRUE})
   END;
 
 set_backups(xx) =
@@ -81,7 +85,10 @@ set_backups(xx) =
   END;
   
 recover_backups(xx) =
-  set_runs(backup_runs) || set_groups(backup_groups) || set_rack(xx, backup_rack)
+  PRE xx : NAME
+  THEN
+    set_runs(backup_runs) || set_groups(backup_groups) || set_rack(xx, backup_rack)
+  END
 
 
 

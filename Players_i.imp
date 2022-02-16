@@ -4,32 +4,31 @@ SEES Names
 
 VALUES
   VALID_PLAYERS_NUMS = 2..5;
-  VALID_PLAYERS_IDS = 1..5;
+  VALID_PLAYERS_IDS = 0..5;
   VALID_ROUNDS = 0..4
 
 CONCRETE_VARIABLES
   round_players_i, players_i
 
 INVARIANT
-  round_players_i : VALID_ROUNDS & round_players_i = round_players &
+  round_players_i : VALID_ROUNDS & 
+  round_players = round_players_i &
 
   // Players: a function of names (but partial injective and indexed by naturals)
-  players_i : VALID_PLAYERS_IDS --> NAME & players_i = players &
+  players_i : VALID_PLAYERS_IDS --> NAME & players = players_i &
 
-  card(players_i) < round_players_i
+  card(players_i |>> {NILL}) < round_players_i
 
 INITIALISATION
   players_i := VALID_PLAYERS_IDS * {NILL}; 
-  round_players_i := 0
+  round_players_i := MAXINT
+
 
 OPERATIONS
 
 set_round_players(nn) = round_players_i := nn;
 
 add_player(xx) =
-  VAR new_id IN
-    new_id := card(players_i) + 1;
-    players_i(new_id) := xx
-  END
+    players_i(card(players_i) + 1) := xx
 
 END

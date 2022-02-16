@@ -15,7 +15,7 @@ VARIABLES
   players_racks
 
 INVARIANT
-  players_racks : VALID_PLAYERS_IDS +-> POW(TILES) &
+  players_racks : VALID_PLAYERS_IDS +-> (TILES --> BOOL) &
   dom(players_racks) = dom(players)
 
 INITIALISATION
@@ -29,26 +29,26 @@ add_racked_player(xx) =
     add_player(xx) || players_racks := players_racks <+ {card(players) + 1 |-> {}}
   END;
 
-add_tiles_to_hand(xx, tt) =
-  PRE xx : ran(players) & tt /\ players_racks(players~(xx)) = {}
+add_tiles_to_hand(xx, tts) =
+  PRE xx : ran(players) & tts : TILES --> BOOL & players_racks(players~(xx))[dom(tts |> {TRUE})] = {FALSE}
   THEN
-    players_racks(players~(xx)) := players_racks(players~(xx)) \/ tt
+    players_racks(players~(xx)) := players_racks(players~(xx)) <+ dom(tts |> {TRUE}) * {TRUE}
   END;
 
-rmv_tiles_from_hand(xx, tt) =
-  PRE xx : ran(players) & tt <: players_racks(players~(xx))
+rmv_tiles_from_hand(xx, tts) =
+  PRE xx : ran(players) & tts : TILES --> BOOL & players_racks(players~(xx))[dom(tts |> {TRUE})] = {TRUE}
   THEN
-    players_racks(players~(xx)) := players_racks(players~(xx)) - tt
+    players_racks(players~(xx)) := players_racks(players~(xx)) <+ dom(tts |> {TRUE}) * {FALSE}
   END;
 
 reset_rack(xx) = 
   PRE xx : ran(players)
   THEN
-    players_racks(players~(xx)) := {}
+    players_racks(players~(xx)) := TILES * {FALSE}
   END;
 
 set_rack(xx, tt) =
-  PRE xx : ran(players) & tt <: TILES
+  PRE xx : ran(players) & tt : TILES --> BOOL
   THEN
     players_racks(players~(xx)) := tt
   END

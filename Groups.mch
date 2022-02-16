@@ -9,10 +9,10 @@ PROPERTIES
   MAX_TILES_PER_GROUPS = 4
 
 VARIABLES
-  free_indexes, groups
+  free_indexes_g, groups
 
 INVARIANT
-  free_indexes : GAME_INDEXES --> BOOL &
+  free_indexes_g : GAME_INDEXES --> BOOL &
 
   // A group is 3 or more of the same number that are all different colors
   // Number of unique colors must be equal to the group size
@@ -32,7 +32,7 @@ INVARIANT
 
 
 INITIALISATION
-  groups := TILES * {0} || free_indexes := GAME_INDEXES * {TRUE}
+  groups := TILES * {0} || free_indexes_g := GAME_INDEXES * {TRUE}
 
 OPERATIONS
 
@@ -44,9 +44,9 @@ add_group(gg) =
     card(COLOR[dom(gg|>{TRUE})]) = card(dom(gg|>{TRUE})) & 
     card(NUMBER[dom(gg|>{TRUE}) - TILES_JOKER]) = 1
   THEN
-      ANY next_idx WHERE next_idx = min(dom(free_indexes|>{FALSE})) THEN
+      ANY next_idx WHERE next_idx = min(dom(free_indexes_g|>{FALSE})) THEN
       groups := groups <+ dom(gg|>{TRUE}) * {next_idx} || 
-      free_indexes(next_idx) := FALSE
+      free_indexes_g(next_idx) := FALSE
       END
   END;
 
@@ -60,7 +60,7 @@ rmv_group(gg) =
     card( dom(gg |> {TRUE}) <<| groups) = card(groups) - 1
   THEN 
     groups := groups <+ dom(gg |> {TRUE}) * {0} || 
-    free_indexes := free_indexes <+ groups[dom(gg |> {TRUE})] * {TRUE}
+    free_indexes_g := free_indexes_g <+ groups[dom(gg |> {TRUE})] * {TRUE}
     
   END;
 

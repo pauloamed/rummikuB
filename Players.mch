@@ -2,7 +2,7 @@ MACHINE Players
 
 SEES Names
 
-CONSTANTS
+CONCRETE_CONSTANTS
   VALID_PLAYERS_NUMS, VALID_PLAYERS_IDS, VALID_ROUNDS
 
 PROPERTIES
@@ -17,12 +17,12 @@ INVARIANT
   round_players : VALID_ROUNDS &
 
   // Players: a function of names (but partial injective and indexed by naturals)
-  players : VALID_PLAYERS_IDS >+> NAME & players : FIN(players) &
+  players : VALID_PLAYERS_IDS --> NAME & players : FIN(players) &
 
-  card(players) < round_players
+  card(players |>> {NILL}) < round_players
 
 INITIALISATION
-  players := VALID_PLAYERS_IDS * {NILL} || round_players := 0
+  players := VALID_PLAYERS_IDS * {NILL} || round_players := MAXINT
 
 OPERATIONS
 

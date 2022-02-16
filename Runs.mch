@@ -3,18 +3,16 @@ MACHINE Runs
 SEES Tiles, TileGames
 
 CONSTANTS 
-  RUNS_INDEXES, 
-  EMPTY_RUN
+  RUNS_INDEXES
 PROPERTIES 
-  RUNS_INDEXES = 0..13 & 
-  EMPTY_RUN : TILES --> RUNS_INDEXES & EMPTY_RUN = TILES * {0}
+  RUNS_INDEXES = 0..13
 
 
 VARIABLES
-  free_indexes, runs
+  free_indexes_r, runs
 
 INVARIANT
-  free_indexes : GAME_INDEXES --> BOOL &
+  free_indexes_r : GAME_INDEXES --> BOOL &
   runs : GAME_INDEXES --> (TILES --> RUNS_INDEXES) &
   
 
@@ -27,7 +25,7 @@ INVARIANT
 
 
 INITIALISATION
-  runs := (%ii.(ii:GAME_INDEXES| TILES * {0})) || free_indexes := GAME_INDEXES * {TRUE}
+  runs := (%ii.(ii:GAME_INDEXES| TILES * {0})) || free_indexes_r := GAME_INDEXES * {TRUE}
 
 OPERATIONS
 
@@ -40,9 +38,9 @@ add_run(rr) =
     !(zz,yy).( (zz : dom(rr) & yy : dom(rr) & zz > yy & rr[{zz,yy}] /\ TILES_JOKER = {}) => ( zz - yy = NUMBER(rr(zz)) - NUMBER(rr(yy)))) &
     !zz.( (zz : dom(rr) & rr(zz) /: TILES_JOKER) => (zz - 1 <= NUMBER(rr(zz)) ) & (size(rr) - zz) <= (12 - NUMBER(rr(zz))))
   THEN 
-    ANY next_idx WHERE next_idx = min(dom(free_indexes|>{FALSE})) THEN
+    ANY next_idx WHERE next_idx = min(dom(free_indexes_r|>{FALSE})) THEN
     runs(next_idx) := rr ||
-    free_indexes(next_idx) := FALSE
+    free_indexes_r(next_idx) := FALSE
     END
   END;
 

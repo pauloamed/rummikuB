@@ -3,7 +3,7 @@ REFINES Runs
 
 SEES Tiles, TileGames
 
-VALUES RUNS_INDEXES = 0..13; EMPTY_RUN = TILES * {0}
+VALUES RUNS_INDEXES = 0..13
 
 
 CONCRETE_VARIABLES
@@ -23,7 +23,16 @@ INVARIANT
 
 
 INITIALISATION
-  runs_i := ??????; free_indexes_i := GAME_INDEXES * {TRUE}
+  free_indexes_i := GAME_INDEXES * {TRUE};
+  VAR ii IN
+    ii := 0;
+    WHILE ii < MAX_GAME_INDEX DO
+      runs_i(ii) := TILES * {0};
+      ii := ii + 1
+    INVARIANT ii < MAX_GAME_INDEX
+    VARIANT MAX_GAME_INDEX - ii
+    END
+  END
 
 OPERATIONS
 add_run(rr) = 
@@ -85,6 +94,15 @@ rmv_run(rr) =
 
 set_runs(rrs) = runs_i := rrs;
 
-clear_runs = runs_i := ??????;
+clear_runs = 
+  VAR ii IN
+    ii := 0;
+    WHILE ii < MAX_GAME_INDEX DO
+      runs_i(ii) := TILES * {0};
+      ii := ii + 1
+    INVARIANT ii < MAX_GAME_INDEX
+    VARIANT MAX_GAME_INDEX - ii
+    END
+  END
 
 END
