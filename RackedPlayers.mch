@@ -30,25 +30,25 @@ add_racked_player(xx) =
   END;
 
 add_tiles_to_hand(xx, tts) =
-  PRE xx : ran(players) & tts : TILES --> BOOL & players_racks(players~(xx))[dom(tts |> {TRUE})] = {FALSE}
+  PRE xx : NAME & xx : ran(players) & tts : TILES --> BOOL & players_racks(players~(xx))[dom(tts |> {TRUE})] = {FALSE}
   THEN
     players_racks(players~(xx)) := players_racks(players~(xx)) <+ dom(tts |> {TRUE}) * {TRUE}
   END;
 
 rmv_tiles_from_hand(xx, tts) =
-  PRE xx : ran(players) & tts : TILES --> BOOL & players_racks(players~(xx))[dom(tts |> {TRUE})] = {TRUE}
+  PRE xx : NAME & xx : ran(players) & tts : TILES --> BOOL & players_racks(players~(xx))[dom(tts |> {TRUE})] = {TRUE}
   THEN
     players_racks(players~(xx)) := players_racks(players~(xx)) <+ dom(tts |> {TRUE}) * {FALSE}
   END;
 
 reset_rack(xx) = 
-  PRE xx : ran(players)
+  PRE xx : NAME & xx : ran(players)
   THEN
     players_racks(players~(xx)) := TILES * {FALSE}
   END;
 
 set_rack(xx, tt) =
-  PRE xx : ran(players) & tt : TILES --> BOOL
+  PRE xx : NAME & xx : ran(players) & tt : TILES --> BOOL
   THEN
     players_racks(players~(xx)) := tt
   END
